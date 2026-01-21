@@ -1,10 +1,10 @@
 # Stage Buddy AI v2
 
-A modern AI-powered stage management assistant built with Next.js 16, TypeScript, and Tailwind CSS.
+A modern AI-powered stage management assistant built with Next.js 15, TypeScript, and Tailwind CSS.
 
 ## Features
 
-- ⚡ **Next.js 16** - Latest version with App Router
+- ⚡ **Next.js 15** - Latest version with App Router
 - 🎨 **Tailwind CSS** - Utility-first CSS framework
 - 📘 **TypeScript** - Type-safe development
 - 🚀 **Modern Stack** - React 19 and cutting-edge tools
