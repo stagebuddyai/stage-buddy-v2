@@ -1,0 +1,31 @@
+{
+  "name": "stage-buddy",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "dev:turbo": "next dev --turbo -p 3000",
+    "dev:doctor": "echo '🔍 Checking for Next.js processes on ports 3000-3002...' && (ss -ltnp 2>/dev/null | grep -E ':3000|:3001|:3002' || true) && echo '' && (ps aux | grep -E 'next dev|next-server' | grep -v grep || true)",
+    "build": "next build",
+    "prebuild": "node scripts/check-auth-deps.mjs",
+    "start": "next start",
+    "lint": "next lint",
+    "check:auth-deps": "node scripts/check-auth-deps.mjs",
+    "test:clean-browser": "node -e \"console.log('\\n🧪 CLEAN TEST BROWSER SETUP\\n'); console.log('1. Get forwarded URL from VS Code Ports panel (port 3000)'); console.log('2. Open Chrome Incognito: Ctrl+Shift+N (Win/Linux) or Cmd+Shift+N (Mac)'); console.log('3. Navigate to forwarded URL'); console.log('4. Open DevTools (F12) → Network tab → Check \\\"Disable cache\\\"'); console.log('5. Begin testing\\n'); console.log('📖 Full guide: docs/ops/CLEAN_TEST_BROWSER.md\\n');\""
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.1.0",
+    "@supabase/supabase-js": "^2.26.0",
+    "@tailwindcss/postcss": "^4.1.18",
+    "autoprefixer": "^10.4.23",
+    "next": "16.1.1",
+    "postcss": "^8.5.6",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.5.0"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.8"
+  }
+}
