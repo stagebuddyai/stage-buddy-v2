@@ -27,7 +27,11 @@ export async function createSupabaseServer() {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, String(value), options);
+              cookieStore.set(name, String(value), {
+                ...options,
+                sameSite: 'lax',
+                secure: true,
+              });
             });
           } catch (error) {
             // Cookies cannot be set in Server Components, only in Route Handlers or Server Actions
