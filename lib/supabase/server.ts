@@ -15,6 +15,12 @@ export async function createSupabaseServer() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      auth: {
+        flowType: 'implicit',
+        autoRefreshToken: false,
+        persistSession: true,
+        detectSessionInUrl: true,
+      },
       cookies: {
         getAll() {
           try {
@@ -76,8 +82,10 @@ export function createServiceRoleClient() {
     serviceRoleKey,
     {
       auth: {
+        flowType: 'implicit',
         autoRefreshToken: false,
-        persistSession: true
+        persistSession: true,
+        detectSessionInUrl: true,
       }
     }
   );

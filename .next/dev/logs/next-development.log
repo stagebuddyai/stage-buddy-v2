@@ -1,0 +1,8 @@
+[00:00:08.176] Server  LOG     ✓ Ready in 6.8s
+[00:00:18.847] Server  LOG     ○ Compiling / ...
+[00:00:26.273] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:43.914] Server  LOG     [/api/auth/google] origin: "https://improved-goggles-r4qvq4qq95vpf59r7-3000.app.github.dev" "callback:" "https://improved-goggles-r4qvq4qq95vpf59r7-3000.app.github.dev/api/auth/callback"
+[00:00:56.500] Server  LOG     [/api/auth/callback] hit. origin: "https://improved-goggles-r4qvq4qq95vpf59r7-3000.app.github.dev" "hasCode:" true
+[00:00:56.568] Server  LOG     [/api/auth/callback] exchangeCodeForSession result: {}
+[00:00:59.366] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:59.366] Browser WARN    Image with src "https://improved-goggles-r4qvq4qq95vpf59r7-3000.app.github.dev/next.svg" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
