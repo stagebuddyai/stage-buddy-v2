@@ -61,7 +61,7 @@ export function createServiceRoleClient() {
       {
         auth: {
           autoRefreshToken: false,
-          persistSession: false
+          persistSession: true
         }
       }
     );
@@ -73,7 +73,7 @@ export function createServiceRoleClient() {
     {
       auth: {
         autoRefreshToken: false,
-        persistSession: false
+        persistSession: true
       }
     }
   );
