@@ -22,6 +22,16 @@ export async function createSupabaseServer() {
         detectSessionInUrl: true,
       },
       cookies: {
+        get(name) {
+          return cookieStore.get(name)?.value ?? undefined;
+        },
+        set(name, value, options) {
+          try {
+            cookieStore.set({ name, value, ...options });
+          } catch (error) {
+            console.debug('[Supabase Server] Could not set cookie:', error);
+          }
+        },
         getAll() {
           try {
             return cookieStore.getAll();
