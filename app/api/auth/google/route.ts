@@ -16,6 +16,11 @@ export async function GET(req: NextRequest) {
     provider: "google",
     options: {
       redirectTo: callbackUrl,
+      skipBrowserRedirect: false,
+      queryParams: {
+        access_type: 'offline',
+        prompt: 'consent',
+      }
     },
   });
 
