@@ -45,6 +45,16 @@ export async function createSupabaseServer() {
             console.debug('[Supabase Server] Could not set cookies:', error);
           }
         },
+        remove(name, options) {
+          try {
+            cookieStore.set(name, '', {
+              ...options,
+              maxAge: 0,
+            });
+          } catch (error) {
+            console.debug('[Supabase Server] Could not remove cookie:', error);
+          }
+        },
       },
     }
   );
