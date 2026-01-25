@@ -1,0 +1,1301 @@
+{
+  "text": " I'm about to catch a trap ghost. I'm about to catch a trap ghost. Holy god, he's the Holy Ghost. Take the pig, but don't post. Catch it, catch it, catch it, catch it. I don't feel it, I caught it, I got it. Potted ticket with my bros. These politics going the most. I hit a Trump and Biden. Wild vote, wild vote. Out, tweet, I just post. I don't play, I just coach. Third, I'll rate as fuck. More smoke, I need smoke. More smoke, I need smoke. Hold it into that choke. Release, slow down, float. I'm going, I'm going, I'm going, I feel the ghost. So trapped in the bottle. Shake me up and I'm popping. A, A, I'm popping. A, A, you popping. A, A, they popping. A, A, we popping. Pop, pop, pop, stop, stop. Kneaker Jenkins in a locker. Kill my body, blow my heart. But A, they should still alive. And I'm about to catch a trap ghost. I'm about to catch a trap ghost. Holy God, ain't the Holy Ghost. Chia, bro, you doing the most. I'm about to catch a trap ghost. Is the end of 80 pounds of smoke. Take the pit, but don't post. Chia, bro, you doing the most. Thank God so much.",
+  "segments": [
+    {
+      "word": "I'm",
+      "start_time": 0.0,
+      "end_time": 0.86,
+      "confidence": 0.2554352767765522
+    },
+    {
+      "word": "about",
+      "start_time": 0.86,
+      "end_time": 1.02,
+      "confidence": 0.7527859210968018
+    },
+    {
+      "word": "to",
+      "start_time": 1.02,
+      "end_time": 1.16,
+      "confidence": 0.9841169714927673
+    },
+    {
+      "word": "catch",
+      "start_time": 1.16,
+      "end_time": 1.32,
+      "confidence": 0.9302600622177124
+    },
+    {
+      "word": "a",
+      "start_time": 1.32,
+      "end_time": 1.46,
+      "confidence": 0.7768245339393616
+    },
+    {
+      "word": "trap",
+      "start_time": 1.46,
+      "end_time": 1.7,
+      "confidence": 0.6656314730644226
+    },
+    {
+      "word": "ghost.",
+      "start_time": 1.7,
+      "end_time": 2.1,
+      "confidence": 0.7358590364456177
+    },
+    {
+      "word": "I'm",
+      "start_time": 2.54,
+      "end_time": 2.8,
+      "confidence": 0.8616876602172852
+    },
+    {
+      "word": "about",
+      "start_time": 2.8,
+      "end_time": 2.9,
+      "confidence": 0.9617667198181152
+    },
+    {
+      "word": "to",
+      "start_time": 2.9,
+      "end_time": 3.02,
+      "confidence": 0.9914262294769287
+    },
+    {
+      "word": "catch",
+      "start_time": 3.02,
+      "end_time": 3.22,
+      "confidence": 0.9959654808044434
+    },
+    {
+      "word": "a",
+      "start_time": 3.22,
+      "end_time": 3.34,
+      "confidence": 0.8319456577301025
+    },
+    {
+      "word": "trap",
+      "start_time": 3.34,
+      "end_time": 3.64,
+      "confidence": 0.9745279550552368
+    },
+    {
+      "word": "ghost.",
+      "start_time": 3.64,
+      "end_time": 4.12,
+      "confidence": 0.9585404396057129
+    },
+    {
+      "word": "Holy",
+      "start_time": 4.46,
+      "end_time": 4.76,
+      "confidence": 0.9271421432495117
+    },
+    {
+      "word": "god,",
+      "start_time": 4.76,
+      "end_time": 5.0,
+      "confidence": 0.48886650800704956
+    },
+    {
+      "word": "he's",
+      "start_time": 5.1,
+      "end_time": 5.24,
+      "confidence": 0.2935827672481537
+    },
+    {
+      "word": "the",
+      "start_time": 5.24,
+      "end_time": 5.32,
+      "confidence": 0.7709214687347412
+    },
+    {
+      "word": "Holy",
+      "start_time": 5.32,
+      "end_time": 5.56,
+      "confidence": 0.564193069934845
+    },
+    {
+      "word": "Ghost.",
+      "start_time": 5.56,
+      "end_time": 5.84,
+      "confidence": 0.9179647564888
+    },
+    {
+      "word": "Take",
+      "start_time": 6.36,
+      "end_time": 6.48,
+      "confidence": 0.8788580894470215
+    },
+    {
+      "word": "the",
+      "start_time": 6.48,
+      "end_time": 6.66,
+      "confidence": 0.9843025207519531
+    },
+    {
+      "word": "pig,",
+      "start_time": 6.66,
+      "end_time": 6.88,
+      "confidence": 0.42233818769454956
+    },
+    {
+      "word": "but",
+      "start_time": 7.0,
+      "end_time": 7.06,
+      "confidence": 0.5545604228973389
+    },
+    {
+      "word": "don't",
+      "start_time": 7.06,
+      "end_time": 7.36,
+      "confidence": 0.9011147618293762
+    },
+    {
+      "word": "post.",
+      "start_time": 7.36,
+      "end_time": 7.66,
+      "confidence": 0.9273148775100708
+    },
+    {
+      "word": "Catch",
+      "start_time": 8.08,
+      "end_time": 8.22,
+      "confidence": 0.7659916281700134
+    },
+    {
+      "word": "it,",
+      "start_time": 8.22,
+      "end_time": 8.42,
+      "confidence": 0.970155656337738
+    },
+    {
+      "word": "catch",
+      "start_time": 8.48,
+      "end_time": 8.72,
+      "confidence": 0.9845746159553528
+    },
+    {
+      "word": "it,",
+      "start_time": 8.72,
+      "end_time": 8.92,
+      "confidence": 0.9978616833686829
+    },
+    {
+      "word": "catch",
+      "start_time": 9.04,
+      "end_time": 9.2,
+      "confidence": 0.9933590292930603
+    },
+    {
+      "word": "it,",
+      "start_time": 9.2,
+      "end_time": 9.32,
+      "confidence": 0.9915170669555664
+    },
+    {
+      "word": "catch",
+      "start_time": 9.32,
+      "end_time": 9.68,
+      "confidence": 0.9878738522529602
+    },
+    {
+      "word": "it.",
+      "start_time": 9.68,
+      "end_time": 9.8,
+      "confidence": 0.9776440262794495
+    },
+    {
+      "word": "I",
+      "start_time": 9.8,
+      "end_time": 9.9,
+      "confidence": 0.45944708585739136
+    },
+    {
+      "word": "don't",
+      "start_time": 9.9,
+      "end_time": 9.94,
+      "confidence": 0.5283647142350674
+    },
+    {
+      "word": "feel",
+      "start_time": 9.94,
+      "end_time": 10.22,
+      "confidence": 0.9271101951599121
+    },
+    {
+      "word": "it,",
+      "start_time": 10.22,
+      "end_time": 10.38,
+      "confidence": 0.8900890946388245
+    },
+    {
+      "word": "I",
+      "start_time": 10.42,
+      "end_time": 10.96,
+      "confidence": 0.9854610562324524
+    },
+    {
+      "word": "caught",
+      "start_time": 10.96,
+      "end_time": 11.16,
+      "confidence": 0.3659936487674713
+    },
+    {
+      "word": "it,",
+      "start_time": 11.16,
+      "end_time": 11.3,
+      "confidence": 0.9979274272918701
+    },
+    {
+      "word": "I",
+      "start_time": 11.42,
+      "end_time": 11.5,
+      "confidence": 0.9912863373756409
+    },
+    {
+      "word": "got",
+      "start_time": 11.5,
+      "end_time": 11.74,
+      "confidence": 0.9452170729637146
+    },
+    {
+      "word": "it.",
+      "start_time": 11.74,
+      "end_time": 11.92,
+      "confidence": 0.9979702830314636
+    },
+    {
+      "word": "Potted",
+      "start_time": 12.58,
+      "end_time": 12.94,
+      "confidence": 0.19654979556798935
+    },
+    {
+      "word": "ticket",
+      "start_time": 12.94,
+      "end_time": 13.22,
+      "confidence": 0.3163270354270935
+    },
+    {
+      "word": "with",
+      "start_time": 13.22,
+      "end_time": 13.44,
+      "confidence": 0.9825690984725952
+    },
+    {
+      "word": "my",
+      "start_time": 13.44,
+      "end_time": 13.62,
+      "confidence": 0.995507001876831
+    },
+    {
+      "word": "bros.",
+      "start_time": 13.62,
+      "end_time": 14.06,
+      "confidence": 0.6965671926736832
+    },
+    {
+      "word": "These",
+      "start_time": 14.6,
+      "end_time": 14.74,
+      "confidence": 0.7517340779304504
+    },
+    {
+      "word": "politics",
+      "start_time": 14.74,
+      "end_time": 15.26,
+      "confidence": 0.7490245699882507
+    },
+    {
+      "word": "going",
+      "start_time": 15.26,
+      "end_time": 15.66,
+      "confidence": 0.34653812646865845
+    },
+    {
+      "word": "the",
+      "start_time": 15.66,
+      "end_time": 15.8,
+      "confidence": 0.41430962085723877
+    },
+    {
+      "word": "most.",
+      "start_time": 15.8,
+      "end_time": 16.06,
+      "confidence": 0.9564228653907776
+    },
+    {
+      "word": "I",
+      "start_time": 16.6,
+      "end_time": 16.72,
+      "confidence": 0.9934186935424805
+    },
+    {
+      "word": "hit",
+      "start_time": 16.72,
+      "end_time": 16.88,
+      "confidence": 0.43798360228538513
+    },
+    {
+      "word": "a",
+      "start_time": 16.88,
+      "end_time": 17.02,
+      "confidence": 0.6899248361587524
+    },
+    {
+      "word": "Trump",
+      "start_time": 17.02,
+      "end_time": 17.3,
+      "confidence": 0.3360167443752289
+    },
+    {
+      "word": "and",
+      "start_time": 17.3,
+      "end_time": 17.6,
+      "confidence": 0.5451202392578125
+    },
+    {
+      "word": "Biden.",
+      "start_time": 17.6,
+      "end_time": 18.0,
+      "confidence": 0.4629051685333252
+    },
+    {
+      "word": "Wild",
+      "start_time": 18.62,
+      "end_time": 18.8,
+      "confidence": 0.626359760761261
+    },
+    {
+      "word": "vote,",
+      "start_time": 18.8,
+      "end_time": 19.06,
+      "confidence": 0.5391174554824829
+    },
+    {
+      "word": "wild",
+      "start_time": 19.24,
+      "end_time": 19.46,
+      "confidence": 0.9644532799720764
+    },
+    {
+      "word": "vote.",
+      "start_time": 19.46,
+      "end_time": 19.78,
+      "confidence": 0.9946331977844238
+    },
+    {
+      "word": "Out,",
+      "start_time": 20.4,
+      "end_time": 20.58,
+      "confidence": 0.20444302260875702
+    },
+    {
+      "word": "tweet,",
+      "start_time": 20.72,
+      "end_time": 20.96,
+      "confidence": 0.42263063788414
+    },
+    {
+      "word": "I",
+      "start_time": 21.16,
+      "end_time": 21.16,
+      "confidence": 0.9889843463897705
+    },
+    {
+      "word": "just",
+      "start_time": 21.16,
+      "end_time": 21.3,
+      "confidence": 0.9874990582466125
+    },
+    {
+      "word": "post.",
+      "start_time": 21.3,
+      "end_time": 21.68,
+      "confidence": 0.9787819981575012
+    },
+    {
+      "word": "I",
+      "start_time": 22.34,
+      "end_time": 22.44,
+      "confidence": 0.8981794714927673
+    },
+    {
+      "word": "don't",
+      "start_time": 22.44,
+      "end_time": 22.64,
+      "confidence": 0.9259212613105774
+    },
+    {
+      "word": "play,",
+      "start_time": 22.64,
+      "end_time": 22.88,
+      "confidence": 0.9788830876350403
+    },
+    {
+      "word": "I",
+      "start_time": 23.04,
+      "end_time": 23.1,
+      "confidence": 0.9974669218063354
+    },
+    {
+      "word": "just",
+      "start_time": 23.1,
+      "end_time": 23.26,
+      "confidence": 0.998803973197937
+    },
+    {
+      "word": "coach.",
+      "start_time": 23.26,
+      "end_time": 23.62,
+      "confidence": 0.921953022480011
+    },
+    {
+      "word": "Third,",
+      "start_time": 24.26,
+      "end_time": 24.44,
+      "confidence": 0.9369783401489258
+    },
+    {
+      "word": "I'll",
+      "start_time": 24.7,
+      "end_time": 25.04,
+      "confidence": 0.592321902513504
+    },
+    {
+      "word": "rate",
+      "start_time": 25.04,
+      "end_time": 25.1,
+      "confidence": 0.4812503159046173
+    },
+    {
+      "word": "as",
+      "start_time": 25.1,
+      "end_time": 25.32,
+      "confidence": 0.2538924813270569
+    },
+    {
+      "word": "fuck.",
+      "start_time": 25.32,
+      "end_time": 25.64,
+      "confidence": 0.9663011431694031
+    },
+    {
+      "word": "More",
+      "start_time": 26.14,
+      "end_time": 26.3,
+      "confidence": 0.9631632566452026
+    },
+    {
+      "word": "smoke,",
+      "start_time": 26.3,
+      "end_time": 26.62,
+      "confidence": 0.9860732555389404
+    },
+    {
+      "word": "I",
+      "start_time": 26.86,
+      "end_time": 26.88,
+      "confidence": 0.9859890937805176
+    },
+    {
+      "word": "need",
+      "start_time": 26.88,
+      "end_time": 27.04,
+      "confidence": 0.8732295632362366
+    },
+    {
+      "word": "smoke.",
+      "start_time": 27.04,
+      "end_time": 27.44,
+      "confidence": 0.9951533079147339
+    },
+    {
+      "word": "More",
+      "start_time": 27.98,
+      "end_time": 28.28,
+      "confidence": 0.9871342778205872
+    },
+    {
+      "word": "smoke,",
+      "start_time": 28.28,
+      "end_time": 28.58,
+      "confidence": 0.9962271451950073
+    },
+    {
+      "word": "I",
+      "start_time": 28.82,
+      "end_time": 28.86,
+      "confidence": 0.9903860092163086
+    },
+    {
+      "word": "need",
+      "start_time": 28.86,
+      "end_time": 29.02,
+      "confidence": 0.9896692633628845
+    },
+    {
+      "word": "smoke.",
+      "start_time": 29.02,
+      "end_time": 29.38,
+      "confidence": 0.9899386167526245
+    },
+    {
+      "word": "Hold",
+      "start_time": 31.54,
+      "end_time": 31.98,
+      "confidence": 0.012070856057107449
+    },
+    {
+      "word": "it",
+      "start_time": 31.98,
+      "end_time": 32.2,
+      "confidence": 0.7343637347221375
+    },
+    {
+      "word": "into",
+      "start_time": 32.2,
+      "end_time": 32.5,
+      "confidence": 0.5396857857704163
+    },
+    {
+      "word": "that",
+      "start_time": 32.5,
+      "end_time": 32.72,
+      "confidence": 0.15966495871543884
+    },
+    {
+      "word": "choke.",
+      "start_time": 32.72,
+      "end_time": 33.12,
+      "confidence": 0.38666772842407227
+    },
+    {
+      "word": "Release,",
+      "start_time": 33.42,
+      "end_time": 33.8,
+      "confidence": 0.8733776211738586
+    },
+    {
+      "word": "slow",
+      "start_time": 34.08,
+      "end_time": 34.22,
+      "confidence": 0.3982723355293274
+    },
+    {
+      "word": "down,",
+      "start_time": 34.22,
+      "end_time": 34.5,
+      "confidence": 0.6795837879180908
+    },
+    {
+      "word": "float.",
+      "start_time": 34.64,
+      "end_time": 34.94,
+      "confidence": 0.9517199397087097
+    },
+    {
+      "word": "I'm",
+      "start_time": 35.46,
+      "end_time": 35.54,
+      "confidence": 0.9462467133998871
+    },
+    {
+      "word": "going,",
+      "start_time": 35.54,
+      "end_time": 35.74,
+      "confidence": 0.9456895589828491
+    },
+    {
+      "word": "I'm",
+      "start_time": 35.86,
+      "end_time": 36.24,
+      "confidence": 0.6872269660234451
+    },
+    {
+      "word": "going,",
+      "start_time": 36.24,
+      "end_time": 36.44,
+      "confidence": 0.9787090420722961
+    },
+    {
+      "word": "I'm",
+      "start_time": 36.66,
+      "end_time": 36.68,
+      "confidence": 0.5762895345687866
+    },
+    {
+      "word": "going,",
+      "start_time": 36.68,
+      "end_time": 36.68,
+      "confidence": 0.9483332633972168
+    },
+    {
+      "word": "I",
+      "start_time": 36.68,
+      "end_time": 37.22,
+      "confidence": 0.5345758199691772
+    },
+    {
+      "word": "feel",
+      "start_time": 37.22,
+      "end_time": 37.46,
+      "confidence": 0.9071180820465088
+    },
+    {
+      "word": "the",
+      "start_time": 37.46,
+      "end_time": 37.64,
+      "confidence": 0.6186566352844238
+    },
+    {
+      "word": "ghost.",
+      "start_time": 37.64,
+      "end_time": 37.84,
+      "confidence": 0.4204791486263275
+    },
+    {
+      "word": "So",
+      "start_time": 39.0,
+      "end_time": 39.34,
+      "confidence": 0.13772626221179962
+    },
+    {
+      "word": "trapped",
+      "start_time": 39.34,
+      "end_time": 39.72,
+      "confidence": 0.890533447265625
+    },
+    {
+      "word": "in",
+      "start_time": 39.72,
+      "end_time": 40.04,
+      "confidence": 0.9788345098495483
+    },
+    {
+      "word": "the",
+      "start_time": 40.04,
+      "end_time": 40.18,
+      "confidence": 0.8467326760292053
+    },
+    {
+      "word": "bottle.",
+      "start_time": 40.18,
+      "end_time": 40.58,
+      "confidence": 0.8217072486877441
+    },
+    {
+      "word": "Shake",
+      "start_time": 41.06,
+      "end_time": 41.2,
+      "confidence": 0.4630591869354248
+    },
+    {
+      "word": "me",
+      "start_time": 41.2,
+      "end_time": 41.38,
+      "confidence": 0.8747881054878235
+    },
+    {
+      "word": "up",
+      "start_time": 41.38,
+      "end_time": 41.58,
+      "confidence": 0.9921318888664246
+    },
+    {
+      "word": "and",
+      "start_time": 41.58,
+      "end_time": 41.7,
+      "confidence": 0.760815441608429
+    },
+    {
+      "word": "I'm",
+      "start_time": 41.7,
+      "end_time": 41.9,
+      "confidence": 0.9373220503330231
+    },
+    {
+      "word": "popping.",
+      "start_time": 41.9,
+      "end_time": 42.26,
+      "confidence": 0.9731853008270264
+    },
+    {
+      "word": "A,",
+      "start_time": 42.64,
+      "end_time": 43.06,
+      "confidence": 0.4783119261264801
+    },
+    {
+      "word": "A,",
+      "start_time": 43.24,
+      "end_time": 43.44,
+      "confidence": 0.8390592932701111
+    },
+    {
+      "word": "I'm",
+      "start_time": 43.6,
+      "end_time": 43.76,
+      "confidence": 0.9531424641609192
+    },
+    {
+      "word": "popping.",
+      "start_time": 43.76,
+      "end_time": 44.16,
+      "confidence": 0.9556694030761719
+    },
+    {
+      "word": "A,",
+      "start_time": 44.76,
+      "end_time": 44.92,
+      "confidence": 0.9313951730728149
+    },
+    {
+      "word": "A,",
+      "start_time": 45.14,
+      "end_time": 45.32,
+      "confidence": 0.8658847808837891
+    },
+    {
+      "word": "you",
+      "start_time": 45.52,
+      "end_time": 45.6,
+      "confidence": 0.9510639905929565
+    },
+    {
+      "word": "popping.",
+      "start_time": 45.6,
+      "end_time": 45.94,
+      "confidence": 0.9325729012489319
+    },
+    {
+      "word": "A,",
+      "start_time": 46.7,
+      "end_time": 46.86,
+      "confidence": 0.9755989909172058
+    },
+    {
+      "word": "A,",
+      "start_time": 47.08,
+      "end_time": 47.26,
+      "confidence": 0.9708036780357361
+    },
+    {
+      "word": "they",
+      "start_time": 47.36,
+      "end_time": 47.46,
+      "confidence": 0.25935930013656616
+    },
+    {
+      "word": "popping.",
+      "start_time": 47.46,
+      "end_time": 47.96,
+      "confidence": 0.8833649158477783
+    },
+    {
+      "word": "A,",
+      "start_time": 48.58,
+      "end_time": 48.76,
+      "confidence": 0.9666882157325745
+    },
+    {
+      "word": "A,",
+      "start_time": 48.96,
+      "end_time": 49.18,
+      "confidence": 0.9793780446052551
+    },
+    {
+      "word": "we",
+      "start_time": 49.42,
+      "end_time": 49.42,
+      "confidence": 0.9838626980781555
+    },
+    {
+      "word": "popping.",
+      "start_time": 49.42,
+      "end_time": 49.9,
+      "confidence": 0.965218186378479
+    },
+    {
+      "word": "Pop,",
+      "start_time": 50.42,
+      "end_time": 50.66,
+      "confidence": 0.5702704787254333
+    },
+    {
+      "word": "pop,",
+      "start_time": 50.78,
+      "end_time": 51.0,
+      "confidence": 0.8014155626296997
+    },
+    {
+      "word": "pop,",
+      "start_time": 51.22,
+      "end_time": 51.22,
+      "confidence": 0.7397761940956116
+    },
+    {
+      "word": "stop,",
+      "start_time": 51.32,
+      "end_time": 51.44,
+      "confidence": 0.5306570529937744
+    },
+    {
+      "word": "stop.",
+      "start_time": 51.7,
+      "end_time": 51.86,
+      "confidence": 0.9776870608329773
+    },
+    {
+      "word": "Kneaker",
+      "start_time": 52.28,
+      "end_time": 52.72,
+      "confidence": 0.1956898495554924
+    },
+    {
+      "word": "Jenkins",
+      "start_time": 52.72,
+      "end_time": 53.1,
+      "confidence": 0.35275551676750183
+    },
+    {
+      "word": "in",
+      "start_time": 53.1,
+      "end_time": 53.38,
+      "confidence": 0.7017271518707275
+    },
+    {
+      "word": "a",
+      "start_time": 53.38,
+      "end_time": 53.48,
+      "confidence": 0.4826532006263733
+    },
+    {
+      "word": "locker.",
+      "start_time": 53.48,
+      "end_time": 53.86,
+      "confidence": 0.40954768657684326
+    },
+    {
+      "word": "Kill",
+      "start_time": 54.28,
+      "end_time": 54.4,
+      "confidence": 0.22241610288619995
+    },
+    {
+      "word": "my",
+      "start_time": 54.4,
+      "end_time": 54.64,
+      "confidence": 0.951453447341919
+    },
+    {
+      "word": "body,",
+      "start_time": 54.64,
+      "end_time": 54.86,
+      "confidence": 0.11625873297452927
+    },
+    {
+      "word": "blow",
+      "start_time": 55.2,
+      "end_time": 55.2,
+      "confidence": 0.9912539124488831
+    },
+    {
+      "word": "my",
+      "start_time": 55.2,
+      "end_time": 55.44,
+      "confidence": 0.9836863875389099
+    },
+    {
+      "word": "heart.",
+      "start_time": 55.44,
+      "end_time": 55.72,
+      "confidence": 0.5027766227722168
+    },
+    {
+      "word": "But",
+      "start_time": 56.04,
+      "end_time": 56.16,
+      "confidence": 0.5720980167388916
+    },
+    {
+      "word": "A,",
+      "start_time": 56.16,
+      "end_time": 56.34,
+      "confidence": 0.6530392169952393
+    },
+    {
+      "word": "they",
+      "start_time": 56.5,
+      "end_time": 56.6,
+      "confidence": 0.08664809167385101
+    },
+    {
+      "word": "should",
+      "start_time": 56.6,
+      "end_time": 56.72,
+      "confidence": 0.43006426095962524
+    },
+    {
+      "word": "still",
+      "start_time": 56.72,
+      "end_time": 57.02,
+      "confidence": 0.4812324345111847
+    },
+    {
+      "word": "alive.",
+      "start_time": 57.02,
+      "end_time": 57.42,
+      "confidence": 0.5833126902580261
+    },
+    {
+      "word": "And",
+      "start_time": 57.82,
+      "end_time": 57.92,
+      "confidence": 0.8931373953819275
+    },
+    {
+      "word": "I'm",
+      "start_time": 57.92,
+      "end_time": 58.04,
+      "confidence": 0.8298308551311493
+    },
+    {
+      "word": "about",
+      "start_time": 58.04,
+      "end_time": 58.16,
+      "confidence": 0.9030978083610535
+    },
+    {
+      "word": "to",
+      "start_time": 58.16,
+      "end_time": 58.3,
+      "confidence": 0.9967266321182251
+    },
+    {
+      "word": "catch",
+      "start_time": 58.3,
+      "end_time": 58.44,
+      "confidence": 0.43891599774360657
+    },
+    {
+      "word": "a",
+      "start_time": 58.44,
+      "end_time": 58.6,
+      "confidence": 0.8272043466567993
+    },
+    {
+      "word": "trap",
+      "start_time": 58.6,
+      "end_time": 58.86,
+      "confidence": 0.667068600654602
+    },
+    {
+      "word": "ghost.",
+      "start_time": 58.86,
+      "end_time": 59.2,
+      "confidence": 0.1704750806093216
+    },
+    {
+      "word": "I'm",
+      "start_time": 59.36,
+      "end_time": 59.78,
+      "confidence": 0.45784249901771545
+    },
+    {
+      "word": "about",
+      "start_time": 59.78,
+      "end_time": 59.86,
+      "confidence": 0.26710182428359985
+    },
+    {
+      "word": "to",
+      "start_time": 59.86,
+      "end_time": 60.0,
+      "confidence": 0.9927449226379395
+    },
+    {
+      "word": "catch",
+      "start_time": 60.0,
+      "end_time": 60.16,
+      "confidence": 0.6724710464477539
+    },
+    {
+      "word": "a",
+      "start_time": 60.16,
+      "end_time": 60.3,
+      "confidence": 0.7738380432128906
+    },
+    {
+      "word": "trap",
+      "start_time": 60.3,
+      "end_time": 60.58,
+      "confidence": 0.8676995038986206
+    },
+    {
+      "word": "ghost.",
+      "start_time": 60.58,
+      "end_time": 60.92,
+      "confidence": 0.6831749677658081
+    },
+    {
+      "word": "Holy",
+      "start_time": 61.34,
+      "end_time": 61.56,
+      "confidence": 0.9381557703018188
+    },
+    {
+      "word": "God,",
+      "start_time": 61.56,
+      "end_time": 61.8,
+      "confidence": 0.566871702671051
+    },
+    {
+      "word": "ain't",
+      "start_time": 61.96,
+      "end_time": 62.1,
+      "confidence": 0.6384696513414383
+    },
+    {
+      "word": "the",
+      "start_time": 62.1,
+      "end_time": 62.18,
+      "confidence": 0.9444298148155212
+    },
+    {
+      "word": "Holy",
+      "start_time": 62.18,
+      "end_time": 62.46,
+      "confidence": 0.7363364100456238
+    },
+    {
+      "word": "Ghost.",
+      "start_time": 62.46,
+      "end_time": 62.74,
+      "confidence": 0.9834054708480835
+    },
+    {
+      "word": "Chia,",
+      "start_time": 63.24,
+      "end_time": 63.42,
+      "confidence": 0.12658845260739326
+    },
+    {
+      "word": "bro,",
+      "start_time": 63.46,
+      "end_time": 63.66,
+      "confidence": 0.6858159899711609
+    },
+    {
+      "word": "you",
+      "start_time": 63.8,
+      "end_time": 63.88,
+      "confidence": 0.9311561584472656
+    },
+    {
+      "word": "doing",
+      "start_time": 63.88,
+      "end_time": 64.06,
+      "confidence": 0.5823948383331299
+    },
+    {
+      "word": "the",
+      "start_time": 64.06,
+      "end_time": 64.22,
+      "confidence": 0.7163731455802917
+    },
+    {
+      "word": "most.",
+      "start_time": 64.22,
+      "end_time": 64.46,
+      "confidence": 0.9687528014183044
+    },
+    {
+      "word": "I'm",
+      "start_time": 64.86,
+      "end_time": 65.02,
+      "confidence": 0.9609569013118744
+    },
+    {
+      "word": "about",
+      "start_time": 65.02,
+      "end_time": 65.1,
+      "confidence": 0.9735286235809326
+    },
+    {
+      "word": "to",
+      "start_time": 65.1,
+      "end_time": 65.24,
+      "confidence": 0.9931622743606567
+    },
+    {
+      "word": "catch",
+      "start_time": 65.24,
+      "end_time": 65.38,
+      "confidence": 0.9778492450714111
+    },
+    {
+      "word": "a",
+      "start_time": 65.38,
+      "end_time": 65.5,
+      "confidence": 0.9391915202140808
+    },
+    {
+      "word": "trap",
+      "start_time": 65.5,
+      "end_time": 65.8,
+      "confidence": 0.9888613820075989
+    },
+    {
+      "word": "ghost.",
+      "start_time": 65.8,
+      "end_time": 66.16,
+      "confidence": 0.9547204375267029
+    },
+    {
+      "word": "Is",
+      "start_time": 66.42,
+      "end_time": 66.52,
+      "confidence": 0.7666271924972534
+    },
+    {
+      "word": "the",
+      "start_time": 66.52,
+      "end_time": 66.66,
+      "confidence": 0.47632089257240295
+    },
+    {
+      "word": "end",
+      "start_time": 66.66,
+      "end_time": 66.8,
+      "confidence": 0.27680453658103943
+    },
+    {
+      "word": "of",
+      "start_time": 66.8,
+      "end_time": 66.94,
+      "confidence": 0.483536958694458
+    },
+    {
+      "word": "80",
+      "start_time": 66.94,
+      "end_time": 67.18,
+      "confidence": 0.6630712747573853
+    },
+    {
+      "word": "pounds",
+      "start_time": 67.18,
+      "end_time": 67.48,
+      "confidence": 0.6375090479850769
+    },
+    {
+      "word": "of",
+      "start_time": 67.48,
+      "end_time": 67.68,
+      "confidence": 0.8375038504600525
+    },
+    {
+      "word": "smoke.",
+      "start_time": 67.68,
+      "end_time": 67.98,
+      "confidence": 0.9863485097885132
+    },
+    {
+      "word": "Take",
+      "start_time": 68.36,
+      "end_time": 68.52,
+      "confidence": 0.8422408699989319
+    },
+    {
+      "word": "the",
+      "start_time": 68.52,
+      "end_time": 68.72,
+      "confidence": 0.9887485504150391
+    },
+    {
+      "word": "pit,",
+      "start_time": 68.72,
+      "end_time": 68.94,
+      "confidence": 0.32510167360305786
+    },
+    {
+      "word": "but",
+      "start_time": 69.06,
+      "end_time": 69.14,
+      "confidence": 0.7590652108192444
+    },
+    {
+      "word": "don't",
+      "start_time": 69.14,
+      "end_time": 69.38,
+      "confidence": 0.9824372231960297
+    },
+    {
+      "word": "post.",
+      "start_time": 69.38,
+      "end_time": 69.84,
+      "confidence": 0.9374276399612427
+    },
+    {
+      "word": "Chia,",
+      "start_time": 70.2,
+      "end_time": 70.4,
+      "confidence": 0.9428088963031769
+    },
+    {
+      "word": "bro,",
+      "start_time": 70.52,
+      "end_time": 70.68,
+      "confidence": 0.9883794784545898
+    },
+    {
+      "word": "you",
+      "start_time": 70.8,
+      "end_time": 70.86,
+      "confidence": 0.9962766766548157
+    },
+    {
+      "word": "doing",
+      "start_time": 70.86,
+      "end_time": 71.12,
+      "confidence": 0.648495078086853
+    },
+    {
+      "word": "the",
+      "start_time": 71.12,
+      "end_time": 71.34,
+      "confidence": 0.6665166020393372
+    },
+    {
+      "word": "most.",
+      "start_time": 71.34,
+      "end_time": 71.58,
+      "confidence": 0.8878635764122009
+    },
+    {
+      "word": "Thank",
+      "start_time": 72.32,
+      "end_time": 72.72,
+      "confidence": 0.9690849781036377
+    },
+    {
+      "word": "God",
+      "start_time": 72.72,
+      "end_time": 72.9,
+      "confidence": 0.5293469429016113
+    },
+    {
+      "word": "so",
+      "start_time": 72.9,
+      "end_time": 73.12,
+      "confidence": 0.42030927538871765
+    },
+    {
+      "word": "much.",
+      "start_time": 73.12,
+      "end_time": 73.26,
+      "confidence": 0.9786487221717834
+    }
+  ]
+}

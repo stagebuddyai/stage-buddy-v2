@@ -132,19 +132,23 @@ class VocalEmotionDetector:
         Returns:
             List of EmotionSegment with detected vocal emotions
         """
-        # Load audio
-        if TORCH_AVAILABLE:
-            waveform, sr = torchaudio.load(audio_path)
-            if sr != self.sample_rate:
-                resampler = torchaudio.transforms.Resample(sr, self.sample_rate)
-                waveform = resampler(waveform)
-            # Convert to mono if stereo
-            if waveform.shape[0] > 1:
-                waveform = waveform.mean(dim=0, keepdim=True)
-            audio_array = waveform.squeeze().numpy()
-            sr = self.sample_rate
-        elif LIBROSA_AVAILABLE:
+        # Load audio - prefer librosa for better compatibility
+        if LIBROSA_AVAILABLE:
             audio_array, sr = librosa.load(audio_path, sr=self.sample_rate, mono=True)
+        elif TORCH_AVAILABLE:
+            try:
+                waveform, sr = torchaudio.load(audio_path)
+                if sr != self.sample_rate:
+                    resampler = torchaudio.transforms.Resample(sr, self.sample_rate)
+                    waveform = resampler(waveform)
+                # Convert to mono if stereo
+                if waveform.shape[0] > 1:
+                    waveform = waveform.mean(dim=0, keepdim=True)
+                audio_array = waveform.squeeze().numpy()
+                sr = self.sample_rate
+            except ImportError:
+                # Fallback to librosa if torchaudio has issues
+                audio_array, sr = librosa.load(audio_path, sr=self.sample_rate, mono=True)
         else:
             raise RuntimeError("Neither torch/torchaudio nor librosa available")
         
