@@ -1,0 +1,9 @@
+# Ignore large video files
+*.mp4
+*.mov
+*.avi
+*.MOV
+*.MP4
+
+# Ignore generated test outputs
+outputs/

@@ -1,0 +1,35 @@
+{
+  "x_king_city_winery_STRONG.mp4": {
+    "category": "STRONG",
+    "manual_scores": {
+      "spirit": 5,
+      "chest": 5,
+      "body": 5,
+      "audience": 4.5,
+      "overall": 19.5
+    },
+    "notes": "Masterful performance - captures 3 different speakers (MLK, Malcolm X, boy), perfect body language, strong audience engagement"
+  },
+  "trap_ghost_MID.mov": {
+    "category": "MID",
+    "manual_scores": {
+      "spirit": 3,
+      "chest": 4,
+      "body": 3,
+      "audience": 2,
+      "overall": 12
+    },
+    "notes": "Spirit moderately captured (hyper vs trapped mismatch), clear articulation, excessive gestures, poor audience connection"
+  },
+  "did_you_smile_today_WEAK.mov": {
+    "category": "WEAK",
+    "manual_scores": {
+      "spirit": 3,
+      "chest": 3,
+      "body": 1,
+      "audience": 1,
+      "overall": 8
+    },
+    "notes": "Sitting alone in room, monotone delivery, no body language, no audience present - not ideal for testing but shows weak baseline"
+  }
+}
