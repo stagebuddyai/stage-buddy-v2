@@ -10,6 +10,9 @@ emotion-word alignment scoring.
 from typing import List, Dict, Any, Optional
 import numpy as np
 import logging
+import subprocess
+import json
+from pathlib import Path
 
 try:
     from speechbrain.inference.interfaces import foreign_class
@@ -115,6 +118,98 @@ class VocalEmotionDetector:
         else:
             logger.warning("SpeechBrain not available - using prosody-based fallback")
     
+    def _detect_via_subprocess(
+        self,
+        audio_path: str,
+        segment_duration: float = 3.0
+    ) -> Optional[List[EmotionSegment]]:
+        """
+        Detect emotions using subprocess isolation with full SpeechBrain.
+        
+        This calls the standalone emotion_service.py script in an isolated
+        Python environment to avoid dependency conflicts.
+        
+        Args:
+            audio_path: Path to audio file
+            segment_duration: Duration of each analysis segment
+            
+        Returns:
+            List of EmotionSegment or None if subprocess fails
+        """
+        try:
+            # Paths to isolated environment
+            script_dir = Path(__file__).parent.parent.parent.parent
+            python_exe = script_dir / "python_transformers" / "venv" / "bin" / "python"
+            service_script = script_dir / "python_transformers" / "emotion_service.py"
+            
+            if not python_exe.exists() or not service_script.exists():
+                logger.debug(f"Subprocess environment not found: {python_exe}")
+                return None
+            
+            # Run the subprocess
+            logger.info("Using SpeechBrain via subprocess isolation")
+            result = subprocess.run(
+                [str(python_exe), str(service_script), "--audio", audio_path],
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+            
+            if result.returncode != 0:
+                logger.warning(f"Subprocess failed with code {result.returncode}: {result.stderr}")
+                return None
+            
+            # Parse JSON output
+            data = json.loads(result.stdout)
+            
+            if 'error' in data:
+                logger.warning(f"Subprocess returned error: {data['error']}")
+                return None
+            
+            # Convert JSON emotions to EmotionSegment objects
+            emotions = []
+            emotion_name_map = {
+                'neutral': EmotionCategory.NEUTRAL,
+                'happy': EmotionCategory.HAPPY,
+                'sad': EmotionCategory.SAD,
+                'angry': EmotionCategory.ANGRY,
+                'fearful': EmotionCategory.FEARFUL,
+                'surprised': EmotionCategory.SURPRISED,
+                'disgusted': EmotionCategory.DISGUSTED,
+                'excited': EmotionCategory.EXCITED,
+                'calm': EmotionCategory.CALM
+            }
+            
+            from ..shared.data_structures import EMOTION_VA_MAP
+            
+            for e in data.get('emotions', []):
+                emotion = emotion_name_map.get(e['emotion'], EmotionCategory.NEUTRAL)
+                valence, arousal = EMOTION_VA_MAP.get(emotion, (0.0, 0.5))
+                
+                emotions.append(EmotionSegment(
+                    emotion=emotion,
+                    intensity=min(1.0, e['confidence'] * 1.2),
+                    valence=valence,
+                    arousal=arousal,
+                    start_time=e['start'],
+                    end_time=e['end'],
+                    confidence=e['confidence'],
+                    source="vocal"
+                ))
+            
+            logger.info(f"Subprocess returned {len(emotions)} emotion segments")
+            return emotions
+            
+        except subprocess.TimeoutExpired:
+            logger.warning("Subprocess timed out after 30 seconds")
+            return None
+        except json.JSONDecodeError as e:
+            logger.warning(f"Failed to parse subprocess output: {e}")
+            return None
+        except Exception as e:
+            logger.warning(f"Subprocess error: {e}")
+            return None
+    
     def detect_emotions_from_file(
         self,
         audio_path: str,
@@ -132,6 +227,14 @@ class VocalEmotionDetector:
         Returns:
             List of EmotionSegment with detected vocal emotions
         """
+        # Try subprocess isolation first (full SpeechBrain, no dependency conflicts)
+        subprocess_result = self._detect_via_subprocess(audio_path, segment_duration)
+        if subprocess_result is not None:
+            return subprocess_result
+        
+        # Fall back to in-process detection (SpeechBrain or prosody)
+        logger.info("Subprocess failed, using in-process emotion detection")
+        
         # Load audio - prefer librosa for better compatibility
         if LIBROSA_AVAILABLE:
             audio_array, sr = librosa.load(audio_path, sr=self.sample_rate, mono=True)
