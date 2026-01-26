@@ -88,6 +88,104 @@ class PauseEvent:
         return self.start_time + self.duration
 
 
+# =============================================================================
+# Chest Engine Data Structures
+# =============================================================================
+
+@dataclass
+class BreathEvent:
+    """A detected breath event in the performance."""
+    timestamp: float            # When the breath occurred
+    duration: float             # How long the breath lasted
+    breath_quality: str         # "controlled", "gasping", "shallow", "held"
+
+    # Context
+    preceding_word: Optional[str] = None
+    following_word: Optional[str] = None
+    at_natural_break: bool = False      # Was this at a sentence/stanza boundary?
+
+    # Acoustic features
+    energy_dip: float = 0.0           # How much energy dropped during breath
+    spectral_change: float = 0.0      # Change in spectral characteristics
+
+    @property
+    def is_problematic(self) -> bool:
+        """Gasping or poorly timed breaths are problematic."""
+        return self.breath_quality == "gasping" or not self.at_natural_break
+
+
+@dataclass
+class ChestSegment:
+    """Analysis for a time segment of the performance (Chest Engine)."""
+    start_time: float
+    end_time: float
+
+    # Energy metrics
+    rms_energy: float           # Root mean square energy
+    loudness_db: float          # Loudness in decibels
+    energy_variance: float      # Variance within segment
+
+    # Breath indicators
+    breath_detected: bool = False       # Was a breath event detected?
+    breath_type: Optional[str] = None   # "controlled", "gasping", "shallow"
+
+    # Voice quality
+    voicing_ratio: float = 0.0        # % of segment that is voiced speech
+    pitch_stability: float = 0.0      # How stable is the pitch (0-1)
+
+    # Strain indicators
+    strain_level: float = 0.0         # 0-1, higher = more strain
+    jitter: float = 0.0               # Pitch perturbation
+    shimmer: float = 0.0              # Amplitude perturbation
+
+    @property
+    def duration(self) -> float:
+        return self.end_time - self.start_time
+
+
+@dataclass
+class ChestAnalysisResult:
+    """Complete output from the Chest Engine analysis."""
+
+    # Overall Chest score (1-5 scale)
+    overall_score: float
+
+    # Sub-component scores (0-1 normalized, displayed as 1-5)
+    breath_control_score: float      # Foundation of vocal technique
+    projection_score: float          # Volume and energy
+    pause_technique_score: float     # Strategic silence usage
+    vocal_health_score: float        # Strain/fatigue detection
+
+    # Detailed segment analysis
+    segments: List['ChestSegment'] = field(default_factory=list)
+
+    # Breath events detected
+    breath_events: List['BreathEvent'] = field(default_factory=list)
+
+    # Pause events (uses shared PauseEvent class)
+    pause_events: List['PauseEvent'] = field(default_factory=list)
+
+    # Energy curve for visualization
+    energy_curve: Optional[np.ndarray] = None         # RMS energy over time
+    energy_timestamps: Optional[np.ndarray] = None    # Corresponding timestamps
+
+    # Fatigue analysis
+    fatigue_detected: bool = False
+    fatigue_onset_time: Optional[float] = None  # When fatigue began (if detected)
+
+    # Feedback generation data
+    strength_moments: List[Dict[str, Any]] = field(default_factory=list)
+    improvement_areas: List[Dict[str, Any]] = field(default_factory=list)
+
+    # Processing metadata
+    processing_time_ms: float = 0.0
+    audio_duration: float = 0.0
+
+
+# =============================================================================
+# Spirit Engine Data Structures
+# =============================================================================
+
 @dataclass
 class ProsodyFeatures:
     """
