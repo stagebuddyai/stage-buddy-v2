@@ -1,0 +1,13 @@
+# ONNX Models - Too large for git
+*.onnx
+*.pt
+*.pth
+*.bin
+*.safetensors
+
+# Temporary model cache
+*.tmp
+*.cache
+
+# Keep this .gitignore in git
+!.gitignore
