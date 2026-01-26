@@ -1,0 +1,15 @@
+# Virtual environment
+venv/
+.venv/
+
+# Model cache (large files)
+.model_cache/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Temp files
+*.tmp
+*.temp
