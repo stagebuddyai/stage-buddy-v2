@@ -152,7 +152,7 @@ class VocalEmotionDetector:
                 [str(python_exe), str(service_script), "--audio", audio_path],
                 capture_output=True,
                 text=True,
-                timeout=120  # Allow time for model download on first run
+                timeout=180  # Allow time for model loading and audio processing (2+ min for 73s audio)
             )
             
             if result.returncode != 0:
@@ -201,7 +201,7 @@ class VocalEmotionDetector:
             return emotions
             
         except subprocess.TimeoutExpired:
-            logger.warning("Subprocess timed out after 30 seconds")
+            logger.warning("Subprocess timed out after 180 seconds (model may still be downloading or audio is very long)")
             return None
         except json.JSONDecodeError as e:
             logger.warning(f"Failed to parse subprocess output: {e}")
