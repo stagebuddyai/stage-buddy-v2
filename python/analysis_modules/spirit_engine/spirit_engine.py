@@ -7,9 +7,9 @@ the emotional content of their words. As the POTS guidebook states:
 "Until the spirit of a poem is awakened, the performance will forever remain asleep."
 
 Core Scoring Components:
-1. Emotion-Word Alignment (40%) - Does vocal emotion match text emotion?
-2. Emotional Transition Quality (25%) - Are transitions smooth/intentional?
-3. Emotional Range (20%) - Dynamic range of emotions displayed
+1. Emotion-Word Alignment (35%) - Does vocal emotion match text emotion?
+2. Emotional Transition Quality (20%) - Are transitions smooth/intentional?
+3. Emotional Range (30%) - Dynamic range of emotions displayed
 4. Settling Indicator (15%) - Consistency suggesting piece is "settled"
 """
 
@@ -78,11 +78,12 @@ class SpiritEngine:
             device=device
         )
         
-        # Scoring weights (from POTS methodology)
+        # Calibrated weights based on benchmark testing (35/20/30/15)
+        # Emphasizes emotional range as key differentiator while maintaining alignment importance
         self.weights = {
-            'emotion_alignment': 0.40,
-            'transition_quality': 0.25,
-            'emotional_range': 0.20,
+            'emotion_alignment': 0.35,
+            'transition_quality': 0.20,
+            'emotional_range': 0.30,
             'settling': 0.15
         }
         
@@ -150,6 +151,8 @@ class SpiritEngine:
         settling_score = self._calculate_settling(vocal_emotions, prosody_timeline)
         
         # Step 8: Calculate overall Spirit score
+        # Calibrated weights based on benchmark testing (35/20/30/15)
+        # Emphasizes emotional range as key differentiator while maintaining alignment importance
         component_scores = {
             'emotion_alignment': alignment_result['overall_alignment'],
             'transition_quality': transition_score,
