@@ -1,0 +1,13 @@
+# Stage Buddy V2 - Chest Engine Dependencies
+# These are additional dependencies beyond requirements_spirit.txt
+
+# Voice Activity Detection
+webrtcvad>=2.0.10
+
+# Signal processing (ensure compatible version)
+scipy>=1.10.0
+
+# Note: The following are already in requirements_spirit.txt:
+# - librosa>=0.10.0 (audio analysis)
+# - opensmile>=2.5.0 (prosodic features)
+# - numpy>=1.24.0 (numerical operations)
