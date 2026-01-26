@@ -7,10 +7,10 @@ the emotional content of their words. As the POTS guidebook states:
 "Until the spirit of a poem is awakened, the performance will forever remain asleep."
 
 Core Scoring Components:
-1. Emotion-Word Alignment (35%) - Does vocal emotion match text emotion?
+1. Emotion-Word Alignment (25%) - Does vocal emotion match text emotion?
 2. Emotional Transition Quality (20%) - Are transitions smooth/intentional?
-3. Emotional Range (30%) - Dynamic range of emotions displayed
-4. Settling Indicator (15%) - Consistency suggesting piece is "settled"
+3. Emotional Range (45%) - Dynamic range of emotions displayed
+4. Settling Indicator (10%) - Consistency suggesting piece is "settled"
 """
 
 from typing import List, Dict, Any, Optional, Tuple
@@ -78,13 +78,14 @@ class SpiritEngine:
             device=device
         )
         
-        # Calibrated weights based on benchmark testing (35/20/30/15)
-        # Emphasizes emotional range as key differentiator while maintaining alignment importance
+        # Calibrated weights: 25/20/45/10 (second iteration)
+        # Heavy emphasis on emotional range as primary quality differentiator
+        # Reduced alignment (25%) and settling (10%) to allow more score spread
         self.weights = {
-            'emotion_alignment': 0.35,
+            'emotion_alignment': 0.25,
             'transition_quality': 0.20,
-            'emotional_range': 0.30,
-            'settling': 0.15
+            'emotional_range': 0.45,
+            'settling': 0.10
         }
         
         logger.info("Spirit Engine initialized")
@@ -151,8 +152,9 @@ class SpiritEngine:
         settling_score = self._calculate_settling(vocal_emotions, prosody_timeline)
         
         # Step 8: Calculate overall Spirit score
-        # Calibrated weights based on benchmark testing (35/20/30/15)
-        # Emphasizes emotional range as key differentiator while maintaining alignment importance
+        # Calibrated weights: 25/20/45/10 (second iteration)
+        # Heavy emphasis on emotional range as primary quality differentiator
+        # Reduced alignment (25%) and settling (10%) to allow more score spread
         component_scores = {
             'emotion_alignment': alignment_result['overall_alignment'],
             'transition_quality': transition_score,
