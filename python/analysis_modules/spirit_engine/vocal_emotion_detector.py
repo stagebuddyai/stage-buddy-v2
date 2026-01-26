@@ -152,7 +152,7 @@ class VocalEmotionDetector:
                 [str(python_exe), str(service_script), "--audio", audio_path],
                 capture_output=True,
                 text=True,
-                timeout=30
+                timeout=120  # Allow time for model download on first run
             )
             
             if result.returncode != 0:
