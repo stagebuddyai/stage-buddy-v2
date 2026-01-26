@@ -46,11 +46,16 @@ except ImportError as e:
     AUDIO_LIBS_AVAILABLE = False
 
 try:
-    from speechbrain.pretrained import EncoderClassifier
+    from speechbrain.inference.classifiers import EncoderClassifier
     SPEECHBRAIN_AVAILABLE = True
 except ImportError as e:
-    logger.error(f"SpeechBrain import failed: {e}")
-    SPEECHBRAIN_AVAILABLE = False
+    try:
+        # Fallback to older API structure
+        from speechbrain.pretrained import EncoderClassifier
+        SPEECHBRAIN_AVAILABLE = True
+    except ImportError:
+        logger.error(f"SpeechBrain import failed: {e}")
+        SPEECHBRAIN_AVAILABLE = False
 
 
 # Emotion mapping (SpeechBrain IEMOCAP -> Stage Buddy categories)
@@ -72,13 +77,16 @@ _MODEL_CACHE = None
 
 def load_model(cache_dir: str = "/home/codespace/.cache/speechbrain_isolated"):
     """
-    Load SpeechBrain emotion recognition model with caching.
+    Load SpeechBrain emotion recognition model with caching and fallback options.
+    
+    Due to API changes in SpeechBrain, we use a simpler direct approach
+    that doesn't rely on pre-trained models with complex dependencies.
     
     Args:
         cache_dir: Directory to cache the downloaded model
         
     Returns:
-        Loaded EncoderClassifier model
+        Loaded model or None (falls back to prosody in vocal_emotion_detector)
     """
     global _MODEL_CACHE
     
@@ -89,18 +97,120 @@ def load_model(cache_dir: str = "/home/codespace/.cache/speechbrain_isolated"):
     if not SPEECHBRAIN_AVAILABLE:
         raise RuntimeError("SpeechBrain not available")
     
+    # Clear old cache to avoid API mismatch issues
+    import shutil
+    if Path(cache_dir).exists():
+        logger.info(f"Clearing old cache at {cache_dir}")
+        shutil.rmtree(cache_dir, ignore_errors=True)
+    Path(cache_dir).mkdir(parents=True, exist_ok=True)
+    
+    # Strategy: Try HuggingFace directly first, then fall back to SpeechBrain wrapper
+    # This works around SpeechBrain API compatibility issues
+    
     try:
-        logger.info(f"Loading SpeechBrain model to {cache_dir}...")
-        model = EncoderClassifier.from_hparams(
-            source="speechbrain/emotion-recognition-wav2vec2-IEMOCAP",
-            savedir=cache_dir
-        )
-        _MODEL_CACHE = model
-        logger.info("Model loaded successfully")
-        return model
+        logger.info("Attempting direct HuggingFace approach for emotion recognition...")
+        from transformers import Wav2Vec2ForSequenceClassification, Wav2Vec2FeatureExtractor
+        
+        # Try multiple HuggingFace models in order of preference
+        hf_models = [
+            "superb/wav2vec2-base-superb-er",  # Emotion Recognition from SUPERB benchmark
+            "ehcalabres/wav2vec2-lg-xlsr-en-speech-emotion-recognition",  # Alternative
+        ]
+        
+        model = None
+        feature_extractor = None
+        model_id = None
+        
+        for mid in hf_models:
+            try:
+                logger.info(f"Loading {mid} via HuggingFace transformers...")
+                feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(mid)
+                model = Wav2Vec2ForSequenceClassification.from_pretrained(mid)
+                model.eval()
+                model_id = mid
+                logger.info(f"Successfully loaded {mid}")
+                break
+            except Exception as e:
+                logger.warning(f"Failed to load {mid}: {str(e)[:100]}")
+                continue
+        
+        if model is None:
+            raise RuntimeError("All HuggingFace models failed to load")
+
+        
+        # Wrap in a simple interface
+        class HFEmotionModel:
+            def __init__(self, model, feature_extractor):
+                self.model = model
+                self.feature_extractor = feature_extractor
+                self.config = model.config
+                # Map indices to emotion labels
+                self.labels = ['angry', 'calm', 'disgust', 'fearful', 'happy', 'neutral', 'sad', 'surprised']
+                
+            def classify_batch(self, waveform):
+                """Compatible interface with SpeechBrain models"""
+                import torch.nn.functional as F
+                
+                # Extract features
+                inputs = self.feature_extractor(
+                    waveform.squeeze().numpy(),
+                    sampling_rate=16000,
+                    return_tensors="pt",
+                    padding=True
+                )
+                
+                # Get logits
+                with torch.no_grad():
+                    logits = self.model(**inputs).logits
+                
+                # Get probabilities and predictions
+                probs = F.softmax(logits, dim=-1)
+                predicted_idx = torch.argmax(probs, dim=-1).item()
+                confidence = probs[0, predicted_idx].item()
+                
+                # Return in SpeechBrain format: (probs, score, index, label)
+                label = self.labels[predicted_idx]
+                return probs, torch.tensor([confidence]), predicted_idx, [label]
+        
+        wrapped_model = HFEmotionModel(model, feature_extractor)
+        _MODEL_CACHE = wrapped_model
+        logger.info(f"Successfully loaded HuggingFace model: {model_id}")
+        return wrapped_model
+        
     except Exception as e:
-        logger.error(f"Failed to load model: {e}")
-        raise
+        logger.warning(f"HuggingFace approach failed: {str(e)[:200]}")
+        logger.info("Falling back to SpeechBrain models...")
+    
+    # Fallback to SpeechBrain models
+    models_to_try = [
+        ("speechbrain/emotion-recognition-wav2vec2-IEMOCAP", "IEMOCAP emotion model"),
+    ]
+    
+    last_error = None
+    for model_source, description in models_to_try:
+        try:
+            logger.info(f"Attempting to load {description}: {model_source}")
+            model = EncoderClassifier.from_hparams(
+                source=model_source,
+                savedir=cache_dir,
+                run_opts={"device": "cpu"}
+            )
+            _MODEL_CACHE = model
+            logger.info(f"Successfully loaded {model_source}")
+            return model
+        except Exception as e:
+            logger.warning(f"Failed to load {model_source}: {str(e)[:200]}")
+            last_error = e
+            # Clean up failed attempt
+            if Path(cache_dir).exists():
+                shutil.rmtree(cache_dir, ignore_errors=True)
+                Path(cache_dir).mkdir(parents=True, exist_ok=True)
+            continue
+    
+    # All models failed - return None to trigger prosody fallback
+    logger.error(f"All emotion models failed. Will use prosody fallback.")
+    logger.error(f"Last error: {str(last_error)[:300]}")
+    return None
 
 
 def analyze_audio(audio_path: str, segment_duration: float = 3.0) -> Dict[str, Any]:
@@ -119,6 +229,13 @@ def analyze_audio(audio_path: str, segment_duration: float = 3.0) -> Dict[str, A
     
     # Load the model
     model = load_model()
+    
+    # If model is None, return error to trigger prosody fallback
+    if model is None:
+        return {
+            "error": "SpeechBrain model unavailable, using prosody fallback",
+            "inference_mode": "failed"
+        }
     
     # Load audio file
     logger.info(f"Loading audio from {audio_path}")
