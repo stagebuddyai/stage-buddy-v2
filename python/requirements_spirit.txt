@@ -9,6 +9,9 @@ speechbrain>=0.5.0
 torch>=2.0.0
 torchaudio>=2.0.0
 
+# ONNX Runtime - conflict-free inference (no triton/numpy version issues)
+onnxruntime>=1.16.0
+
 # Text emotion analysis
 transformers>=4.30.0
 
