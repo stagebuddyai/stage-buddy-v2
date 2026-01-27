@@ -18,20 +18,20 @@ See docs/CHEST_ENGINE_DESIGN.md for full specification.
 """
 
 # Module version
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 
-# Imports will be added as modules are implemented
-# from .chest_engine import ChestEngine, analyze_chest
-# from .breath_analyzer import BreathAnalyzer
-# from .projection_analyzer import ProjectionAnalyzer
-# from .pause_detector import PauseDetector
-# from .vocal_health_monitor import VocalHealthMonitor
+# Main exports
+from .chest_engine import ChestEngine, analyze_chest
+from .breath_analyzer import BreathAnalyzer
+from .projection_analyzer import ProjectionAnalyzer
+from .pause_detector import PauseDetector
+from .vocal_health_monitor import VocalHealthMonitor
 
 __all__ = [
-    # 'ChestEngine',
-    # 'analyze_chest',
-    # 'BreathAnalyzer',
-    # 'ProjectionAnalyzer',
-    # 'PauseDetector',
-    # 'VocalHealthMonitor',
+    'ChestEngine',
+    'analyze_chest',
+    'BreathAnalyzer',
+    'ProjectionAnalyzer',
+    'PauseDetector',
+    'VocalHealthMonitor',
 ]
