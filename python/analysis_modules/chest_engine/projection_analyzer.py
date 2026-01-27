@@ -110,15 +110,19 @@ class ProjectionAnalyzer:
         dropout_threshold = baseline_db - 6  # 6dB below baseline
         dropouts = self._find_dropouts(rms_db, timestamps, dropout_threshold)
 
-        # Step 7: Calculate score
+        # Step 7: Analyze pitch variation (expressiveness indicator)
+        # Monotone = low pitch variation, expressive = high pitch variation
+        pitch_variation = self._analyze_pitch_variation(audio, sr)
+
+        # Step 8: Calculate score
         score = self._calculate_score(
             dynamic_range_db, baseline_db, energy_std,
-            len(peaks), len(dropouts), len(rms)
+            len(peaks), len(dropouts), len(rms), pitch_variation
         )
 
         logger.info(
             f"Projection analysis: dynamic_range={dynamic_range_db:.1f}dB, "
-            f"baseline={baseline_db:.1f}dB, score={score:.2f}"
+            f"baseline={baseline_db:.1f}dB, pitch_var={pitch_variation:.2f}, score={score:.2f}"
         )
 
         return {
@@ -128,6 +132,7 @@ class ProjectionAnalyzer:
             'valley_db': valley_db,
             'dynamic_range_db': dynamic_range_db,
             'energy_std': energy_std,
+            'pitch_variation': pitch_variation,
             'peak_count': len(peaks),
             'dropout_count': len(dropouts),
             'peaks': peaks,
@@ -135,6 +140,81 @@ class ProjectionAnalyzer:
             'energy_curve': rms_db.astype(np.float32),
             'timestamps': timestamps.astype(np.float32)
         }
+
+    def _analyze_pitch_variation(self, audio: np.ndarray, sr: int) -> float:
+        """
+        Analyze pitch variation as an expressiveness indicator.
+
+        Returns a normalized score (0-1) where:
+        - 0: Monotone delivery (low pitch variation)
+        - 1: Highly expressive (high pitch variation, multiple characters)
+
+        Calibrated thresholds:
+        - CV < 0.20: monotone (score 0-0.4)
+        - CV 0.20-0.35: normal (score 0.4-0.7)
+        - CV > 0.35: expressive (score 0.7-1.0)
+
+        - Range < 12 semitones: narrow (score 0-0.4)
+        - Range 12-20 semitones: normal (score 0.4-0.7)
+        - Range > 20 semitones: wide (score 0.7-1.0)
+        """
+        try:
+            # Extract pitch using pyin
+            f0, voiced_flag, voiced_prob = librosa.pyin(
+                audio,
+                fmin=librosa.note_to_hz('C2'),
+                fmax=librosa.note_to_hz('C7'),
+                sr=sr
+            )
+
+            # Remove unvoiced segments
+            f0_clean = f0[~np.isnan(f0)]
+
+            if len(f0_clean) < 10:
+                return 0.5  # Not enough data
+
+            # Calculate coefficient of variation (std/mean)
+            pitch_mean = np.mean(f0_clean)
+            pitch_std = np.std(f0_clean)
+
+            if pitch_mean > 0:
+                cv = pitch_std / pitch_mean
+            else:
+                return 0.5
+
+            # Calculate the pitch range in semitones
+            pitch_range_hz = np.percentile(f0_clean, 95) - np.percentile(f0_clean, 5)
+            pitch_range_semitones = 12 * np.log2((pitch_mean + pitch_range_hz/2) /
+                                                   (pitch_mean - pitch_range_hz/2 + 1))
+
+            # CV scoring with calibrated thresholds
+            # Based on benchmark data: STRONG=0.454, MID=0.300, WEAK=0.313
+            if cv < 0.20:
+                cv_score = cv / 0.20 * 0.4  # 0-0.4 for monotone
+            elif cv < 0.35:
+                cv_score = 0.4 + (cv - 0.20) / 0.15 * 0.3  # 0.4-0.7 for normal
+            else:
+                cv_score = 0.7 + min(0.3, (cv - 0.35) / 0.15 * 0.3)  # 0.7-1.0 for expressive
+
+            # Range scoring with calibrated thresholds
+            # Based on benchmark data: STRONG=26.6, MID=12.8, WEAK=18.8
+            if pitch_range_semitones < 12:
+                range_score = pitch_range_semitones / 12 * 0.4  # 0-0.4 for narrow
+            elif pitch_range_semitones < 20:
+                range_score = 0.4 + (pitch_range_semitones - 12) / 8 * 0.3  # 0.4-0.7 for normal
+            else:
+                range_score = 0.7 + min(0.3, (pitch_range_semitones - 20) / 10 * 0.3)  # 0.7-1.0 for wide
+
+            # Combine both metrics
+            variation_score = 0.6 * cv_score + 0.4 * range_score
+
+            logger.debug(f"Pitch variation: CV={cv:.3f} (score {cv_score:.2f}), range={pitch_range_semitones:.1f}st (score {range_score:.2f}), combined={variation_score:.2f}")
+
+            return float(max(0.0, min(1.0, variation_score)))
+
+        except Exception as e:
+            logger.warning(f"Error analyzing pitch variation: {e}")
+            return 0.5  # Default neutral score
 
     def _find_peaks(
         self,
@@ -197,50 +277,62 @@ class ProjectionAnalyzer:
         energy_std: float,
         peak_count: int,
         dropout_count: int,
-        total_frames: int
+        total_frames: int,
+        pitch_variation: float = 0.5
     ) -> float:
         """
         Calculate projection score (0-1).
 
-        Scoring:
-        - Dynamic range in ideal zone (10-25dB): high score
-        - Too narrow (<10dB): monotone penalty
-        - Too wide (>30dB): uncontrolled penalty
-        - Good baseline: bonus
-        - Intentional peaks: bonus
-        - Unintentional dropouts: penalty
+        Scoring priority:
+        1. Pitch variation (35%) - differentiates expressive from monotone
+        2. Dynamic range (25%) - ideal zone is 10-25dB
+        3. Baseline energy (10%) - can fill the space
+        4. Peak ratio (15%) - intentional emphasis
+        5. Dropout penalty (15%) - avoiding unintentional drops
         """
-        score = 0.5  # Base score
+        score = 0.3  # Base score
 
-        # Dynamic range scoring (most important)
+        # Pitch variation scoring (most important - 35%)
+        # This differentiates monotone from expressive performances
+        score += pitch_variation * 0.35
+
+        # Dynamic range scoring (25%)
         if self.ideal_dynamic_range_min <= dynamic_range_db <= self.ideal_dynamic_range_max:
             # Ideal range
-            score += 0.3
+            score += 0.20
         elif dynamic_range_db < self.ideal_dynamic_range_min:
-            # Too narrow - monotone
-            penalty = (self.ideal_dynamic_range_min - dynamic_range_db) / 20
-            score -= min(0.3, penalty)
+            # Too narrow - monotone in volume
+            penalty = (self.ideal_dynamic_range_min - dynamic_range_db) / 15
+            score -= min(0.15, penalty)
         else:
             # Too wide - might be uncontrolled
             if dynamic_range_db > 30:
-                score -= 0.1
+                score -= 0.05
             else:
-                score += 0.2  # Still decent
+                score += 0.15  # Still decent
 
-        # Baseline scoring
+        # Baseline scoring (10%)
         # Very quiet baseline is problematic (< -30dB from peak)
         if baseline_db > -20:
-            score += 0.1
+            score += 0.05
         elif baseline_db < -30:
             score -= 0.1
 
-        # Peak bonus (intentional emphasis is good)
-        if 2 <= peak_count <= total_frames / 10:
-            score += 0.1
+        # Peak ratio bonus (15%) - more peaks relative to duration = more intentional emphasis
+        if total_frames > 0:
+            peak_ratio = peak_count / total_frames
+            # Ideal peak ratio is 5-15% of frames
+            if 0.05 <= peak_ratio <= 0.15:
+                score += 0.10
+            elif 0.02 <= peak_ratio <= 0.20:
+                score += 0.05
+            # Very few peaks in a long performance is monotone
+            elif peak_ratio < 0.02 and total_frames > 20:
+                score -= 0.05
 
         # Dropout penalty
-        dropout_penalty = dropout_count * 0.05
-        score -= min(0.2, dropout_penalty)
+        dropout_penalty = dropout_count * 0.03
+        score -= min(0.1, dropout_penalty)
 
         return max(0.0, min(1.0, score))
 

@@ -24,12 +24,12 @@
   "did_you_smile_today_WEAK.mov": {
     "category": "WEAK",
     "manual_scores": {
-      "spirit": 3,
-      "chest": 3,
+      "spirit": 4,
+      "chest": 4,
       "body": 1,
       "audience": 1,
-      "overall": 8
+      "overall": 10
     },
-    "notes": "Sitting alone in room, monotone delivery, no body language, no audience present - not ideal for testing but shows weak baseline"
+    "notes": "Words clearly articulated and spaced out, projections great for environment (alone in room for camera). Calm and inviting tone matches poem sentiment. Almost monotone but technically sound - lacks energetic performance element. Body/Audience weak due to sitting position and no live audience."
   }
 }

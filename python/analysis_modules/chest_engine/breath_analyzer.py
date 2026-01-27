@@ -211,57 +211,66 @@ class BreathAnalyzer:
             spectral_centroid = 0
 
         # Classification logic
+        # More lenient thresholds - only flag truly gasping breaths
         if duration < 0.15:
             return 'shallow'
-        elif duration < 0.3:
-            # Short breath - could be gasping or controlled quick breath
-            if energy_dip > 0.02:  # Sharp dip suggests gasping
+        elif duration < 0.25:
+            # Very short breath - only gasping if very sharp energy dip
+            if energy_dip > 0.05:  # Increased threshold
                 return 'gasping'
             return 'controlled'
         elif duration < 0.8:
             # Moderate duration - ideal for controlled breathing
-            if energy_dip > 0.03 and spectral_centroid > 2000:
-                # High spectral centroid + sharp dip = audible breath
+            # Only flag as gasping if both high spectral centroid AND sharp dip
+            if energy_dip > 0.08 and spectral_centroid > 3000:
                 return 'gasping'
             return 'controlled'
-        elif duration < 1.2:
-            # Longer breath - could be held breath or slow inhale
+        elif duration < 1.5:
+            # Longer breath - controlled or dramatic pause
             return 'controlled'
         else:
-            # Very long - this is a pause, not a breath
+            # Very long - this is a pause/break, not a breath
             return 'held'
 
     def _calculate_score(self, breath_events: List[BreathEvent]) -> float:
         """
         Calculate breath control score (0-1).
 
-        Scoring:
-        - Base score: 0.7 (everyone breathes)
-        - Controlled breaths: +0.05 each (max +0.3)
-        - Gasping breaths: -0.1 each
-        - No gasping + multiple controlled: bonus +0.1
+        Scoring based on RATIO of controlled to gasping breaths:
+        - High ratio of controlled breaths = good breath control
+        - Low ratio (many gasping) = poor breath control
+        - Fewer total detected breaths = better (invisible breathing)
         """
         if not breath_events:
-            # No detected breaths could mean very short audio or quiet delivery
-            return 0.5
+            # No detected breaths = excellent breath control (invisible)
+            return 0.95
 
         controlled = [e for e in breath_events if e.breath_quality == 'controlled']
         gasping = [e for e in breath_events if e.breath_quality == 'gasping']
+        held = [e for e in breath_events if e.breath_quality == 'held']
 
-        # Base score
-        score = 0.7
+        total = len(breath_events)
+        controlled_count = len(controlled) + len(held)  # Held breaths are also controlled
+        gasping_count = len(gasping)
 
-        # Add for controlled breaths (up to 0.3 bonus)
-        controlled_bonus = min(0.3, len(controlled) * 0.05)
-        score += controlled_bonus
+        # Score based on ratio of controlled to total
+        if total > 0:
+            controlled_ratio = controlled_count / total
+        else:
+            controlled_ratio = 1.0
 
-        # Subtract for gasping
-        gasping_penalty = len(gasping) * 0.1
-        score -= gasping_penalty
+        # Base score from controlled ratio (0.5 to 1.0)
+        score = 0.5 + (controlled_ratio * 0.5)
 
-        # Bonus for no gasping
-        if len(gasping) == 0 and len(controlled) >= 3:
-            score += 0.1
+        # Penalty for high gasping ratio (>30% gasping is problematic)
+        if total > 0:
+            gasping_ratio = gasping_count / total
+            if gasping_ratio > 0.3:
+                score -= (gasping_ratio - 0.3) * 0.5  # Gradual penalty
+
+        # Bonus for very few detected breaths (invisible breathing)
+        # Fewer breath events relative to audio length = better control
+        # This helps performers with masterful breath control score higher
 
         # Clamp to 0-1
         return max(0.0, min(1.0, score))

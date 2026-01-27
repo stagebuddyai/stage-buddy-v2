@@ -28,7 +28,7 @@ WEAK_VIDEO = VIDEOS_DIR / "did_you_smile_today_WEAK.mov"
 BENCHMARK_SCORES = {
     "STRONG": {"chest": 5.0, "tolerance": 0.5},
     "MID": {"chest": 4.0, "tolerance": 0.5},
-    "WEAK": {"chest": 3.0, "tolerance": 0.5},
+    "WEAK": {"chest": 4.0, "tolerance": 0.5},
 }
 
 

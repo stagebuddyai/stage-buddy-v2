@@ -43,8 +43,9 @@ class VocalHealthMonitor:
     def __init__(
         self,
         sample_rate: int = 16000,
-        jitter_increase_threshold: float = 0.20,
-        pitch_drop_threshold: float = 0.10
+        jitter_increase_threshold: float = 0.35,  # Increased: only flag significant jitter
+        pitch_drop_threshold: float = 0.15,  # Increased: only flag significant pitch drop
+        energy_decline_threshold: float = 0.30  # Only flag significant energy decline
     ):
         """
         Initialize the Vocal Health Monitor.
@@ -53,10 +54,12 @@ class VocalHealthMonitor:
             sample_rate: Audio sample rate
             jitter_increase_threshold: Threshold for significant jitter increase
             pitch_drop_threshold: Threshold for significant pitch drop
+            energy_decline_threshold: Threshold for significant energy decline
         """
         self.sample_rate = sample_rate
         self.jitter_increase_threshold = jitter_increase_threshold
         self.pitch_drop_threshold = pitch_drop_threshold
+        self.energy_decline_threshold = energy_decline_threshold
 
     def analyze(
         self,
@@ -93,12 +96,21 @@ class VocalHealthMonitor:
         jitter_increase = self._calculate_jitter_increase(early_metrics, late_metrics)
         energy_decline = self._calculate_energy_decline(early_metrics, late_metrics)
 
-        # Detect fatigue
-        fatigue_detected = (
-            jitter_increase > self.jitter_increase_threshold or
-            pitch_drop > self.pitch_drop_threshold or
-            energy_decline > 0.20
-        )
+        # Detect fatigue - be conservative to avoid false positives
+        # Dynamic performances may have natural energy variation that isn't fatigue
+        # Only flag fatigue when multiple indicators are present or one is severe
+        fatigue_indicators = 0
+        if jitter_increase > self.jitter_increase_threshold:
+            fatigue_indicators += 1
+        if pitch_drop > self.pitch_drop_threshold:
+            fatigue_indicators += 1
+        if energy_decline > self.energy_decline_threshold:
+            fatigue_indicators += 1
+
+        # Require at least 2 indicators for fatigue, OR one severe indicator
+        severe_jitter = jitter_increase > 0.5
+        severe_pitch_drop = pitch_drop > 0.25
+        fatigue_detected = fatigue_indicators >= 2 or severe_jitter or severe_pitch_drop
 
         # Estimate fatigue onset time
         fatigue_onset_time = None
@@ -293,25 +305,30 @@ class VocalHealthMonitor:
         - Minor fatigue (late only): moderate penalty
         - Significant fatigue: larger penalty
         - Noticeable strain throughout: penalty
+
+        Note: Very high consistency (low strain) in short performances
+        may indicate monotone delivery rather than vocal excellence.
         """
-        score = 0.9  # Start high (vocal health is usually good)
+        score = 0.85  # Start slightly lower (more conservative baseline)
 
         if fatigue_detected:
-            score -= 0.2
+            score -= 0.25
 
-        # Additional penalties for severity
-        if jitter_increase > 0.3:
+        # Additional penalties for severity (with higher thresholds)
+        if jitter_increase > 0.4:
             score -= 0.1
-        if pitch_drop > 0.15:
+        if pitch_drop > 0.2:
             score -= 0.1
-        if energy_decline > 0.25:
-            score -= 0.1
+        if energy_decline > 0.35:
+            score -= 0.05  # Reduced penalty - energy decline isn't always bad
 
-        # Strain penalty
-        score -= strain_level * 0.2
+        # Strain penalty (only for significant strain)
+        if strain_level > 0.15:
+            score -= (strain_level - 0.15) * 0.3
 
-        # Bonus for excellent consistency
-        if not fatigue_detected and strain_level < 0.1:
-            score += 0.1
+        # Bonus for genuine consistency (not just monotone)
+        # Only award bonus if there's some variation (not monotone)
+        if not fatigue_detected and 0.05 < strain_level < 0.15:
+            score += 0.1  # Some variation but controlled = good
 
         return max(0.0, min(1.0, score))

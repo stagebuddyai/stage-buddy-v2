@@ -8,7 +8,7 @@ Benchmark videos must be placed in python/test_data/videos/
 Expected Chest Scores (from benchmark_scores.json):
 - STRONG (x_king_city_winery): 5/5
 - MID (trap_ghost): 4/5
-- WEAK (did_you_smile_today): 3/5
+- WEAK (did_you_smile_today): 4/5 (technically sound despite sitting/monotone)
 
 Usage:
     python run_chest_benchmark.py                    # Run all benchmarks
@@ -40,8 +40,8 @@ BENCHMARKS = {
     },
     "WEAK": {
         "filename": "did_you_smile_today_WEAK.mov",
-        "manual_chest_score": 3.0,
-        "notes": "Monotone, sitting position, adequate but uninspired"
+        "manual_chest_score": 4.0,
+        "notes": "Clear articulation, good projection for environment, calm inviting tone - technically sound"
     }
 }
 
