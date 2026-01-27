@@ -148,6 +148,107 @@ class SpiritAnalysisResult:
     prosody_features: Optional[List[ProsodyFeatures]] = None
 
 
+# =============================================================================
+# Body Engine Data Structures
+# =============================================================================
+
+class GestureType(Enum):
+    """
+    Gesture classification types for Body Engine analysis.
+    Based on POTS criteria for intentional vs nervous movement.
+    """
+    EMPHATIC = "emphatic"        # Purposeful emphasis gesture
+    ILLUSTRATIVE = "illustrative"  # Gesture that illustrates content
+    NERVOUS = "nervous"          # Fidgeting, self-soothing
+    TRANSITIONAL = "transitional"  # Movement between positions
+    NONE = "none"                # No significant gesture
+
+
+@dataclass
+class GestureEvent:
+    """A detected gesture during the performance."""
+    timestamp: float            # Start time in seconds
+    duration: float             # Duration in seconds
+    gesture_type: GestureType   # Classification
+    intentionality: float       # 0-1, how purposeful the gesture appears
+    body_region: str            # "hands", "arms", "full_body", "head"
+    confidence: float           # 0-1, detection confidence
+
+    @property
+    def end_time(self) -> float:
+        return self.timestamp + self.duration
+
+
+@dataclass
+class BodySegment:
+    """
+    Analysis of body language for a time segment.
+    Used by Body Engine for segment-based analysis (matches 3s windows).
+    """
+    start_time: float
+    end_time: float
+
+    # Gesture metrics
+    gesture_count: int          # Number of gestures in segment
+    intentional_ratio: float    # Ratio of intentional vs nervous gestures
+    gesture_diversity: float    # Variety of gesture types (0-1)
+
+    # Stage presence metrics
+    movement_amount: float      # Total movement magnitude (0-1)
+    position_stability: float   # How stable/controlled position is (0-1)
+    space_usage: float          # Use of available stage space (0-1)
+
+    # Eye contact metrics
+    eye_contact_ratio: float    # Ratio of time with audience eye contact (0-1)
+    gaze_stability: float       # Steadiness of gaze (0-1)
+
+    # Physical-vocal alignment (if audio data available)
+    physical_energy: float      # Overall physical energy level (0-1)
+
+    @property
+    def duration(self) -> float:
+        return self.end_time - self.start_time
+
+
+@dataclass
+class BodyAnalysisResult:
+    """
+    Complete output from the Body Engine analysis.
+    Follows the same pattern as SpiritAnalysisResult.
+    """
+    # Overall Body score (1-5 scale)
+    overall_score: float
+
+    # Sub-component scores (0-1 scale, converted to 1-5 for display)
+    gesture_score: float            # Intentionality and purposefulness of gestures
+    stage_presence_score: float     # Use of space, stance, physical confidence
+    eye_contact_score: float        # Connection with audience through gaze
+    alignment_score: float          # Physical-vocal synchronization
+
+    # Detailed segment data
+    segments: List['BodySegment']
+
+    # Gesture event timeline
+    gesture_events: List['GestureEvent']
+
+    # Movement analysis
+    movement_heatmap: Optional[np.ndarray]   # Stage usage visualization (optional)
+    avg_movement: float                       # Average movement per segment
+    movement_variance: float                  # Movement consistency
+
+    # Processing metadata
+    processing_time_ms: float
+    video_duration: float
+    frames_analyzed: int
+
+    # Feedback generation helpers
+    weak_moments: List[Dict[str, Any]]       # Moments needing improvement
+    strong_moments: List[Dict[str, Any]]     # Moments of excellence
+
+    # Configuration used
+    fps_analyzed: float = 5.0                # Frames per second analyzed
+
+
 @dataclass
 class PerformanceTimeline:
     """
@@ -172,8 +273,10 @@ class PerformanceTimeline:
     pause_events: List[PauseEvent] = field(default_factory=list)
     loudness_curve: Optional[np.ndarray] = None
     
-    # From Body Engine (to be implemented)
-    facial_emotions: List[EmotionSegment] = field(default_factory=list)
+    # From Body Engine
+    body_result: Optional['BodyAnalysisResult'] = None
+    gesture_events: List['GestureEvent'] = field(default_factory=list)
+    body_segments: List['BodySegment'] = field(default_factory=list)
     
     # From Audience Engine (to be implemented)
     engagement_opportunities: List[Dict[str, Any]] = field(default_factory=list)
