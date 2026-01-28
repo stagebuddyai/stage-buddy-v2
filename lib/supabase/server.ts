@@ -22,10 +22,10 @@ export async function createSupabaseServer() {
         detectSessionInUrl: true,
       },
       cookies: {
-        get(name) {
+        get(name: string) {
           return cookieStore.get(name)?.value ?? undefined;
         },
-        set(name, value, options) {
+        set(name: string, value: string, options: Record<string, unknown>) {
           try {
             cookieStore.set({ name, value, ...options });
           } catch (error) {
@@ -40,7 +40,7 @@ export async function createSupabaseServer() {
             return [];
           }
         },
-        setAll(cookiesToSet) {
+        setAll(cookiesToSet: Array<{ name: string; value: string; options: Record<string, unknown> }>) {
           try {
             cookiesToSet.forEach(({ name, value, options }) => {
               cookieStore.set(name, String(value), {
@@ -55,7 +55,7 @@ export async function createSupabaseServer() {
             console.debug('[Supabase Server] Could not set cookies:', error);
           }
         },
-        remove(name, options) {
+        remove(name: string, options: Record<string, unknown>) {
           try {
             cookieStore.set(name, '', {
               ...options,
