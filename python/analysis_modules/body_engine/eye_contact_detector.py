@@ -324,13 +324,36 @@ class EyeContactDetector:
         face_detections: List[Dict],
         timestamps: List[float]
     ) -> Dict[str, Any]:
-        """Calculate metrics from fallback face detection."""
+        """
+        Calculate metrics from fallback face detection.
+
+        Calibration Notes (Jan 2026):
+        - When face detection fails completely, we cannot reliably score eye contact
+        - Rather than scoring 0 (penalizing the performer for video quality issues),
+          we return a NEUTRAL baseline that doesn't hurt or help the score
+        - The neutral baseline is based on the 20% weight of eye contact in overall
+        """
         if not face_detections:
             return self._create_empty_analysis()
 
         # Detection rate
         faces_detected = sum(1 for f in face_detections if f.get('face_detected', False))
         detection_rate = faces_detected / len(face_detections) if face_detections else 0
+
+        # If no faces detected at all, return neutral baseline
+        # This avoids penalizing performers for video quality or synthetic tests
+        if faces_detected == 0:
+            logger.info("No faces detected - using neutral eye contact baseline (0.5)")
+            return {
+                'overall_score': 0.5,  # Neutral - doesn't hurt or help
+                'segments': self._create_neutral_segment_data(timestamps),
+                'forward_ratio': 0.5,  # Assume 50/50
+                'downward_ratio': 0.0,
+                'gaze_stability': 0.5,
+                'detection_rate': 0.0,
+                'method': 'neutral_baseline',
+                'note': 'Face detection unavailable - neutral baseline applied'
+            }
 
         # Forward looking ratio
         forward_frames = sum(1 for f in face_detections if f.get('looking_forward', False))
@@ -345,10 +368,10 @@ class EyeContactDetector:
             position_variance = np.var(face_positions)
             gaze_stability = 1.0 - min(1.0, position_variance * 20)
         else:
-            gaze_stability = 0.0
+            gaze_stability = 0.5
 
         # Overall score (lower confidence due to fallback method)
-        contact_score = (forward_ratio * 0.6 + gaze_stability * 0.4) * 0.8  # 20% penalty for fallback
+        contact_score = (forward_ratio * 0.6 + gaze_stability * 0.4) * 0.85
 
         # Create segment data
         segment_data = self._create_fallback_segment_data(face_detections, timestamps)
@@ -362,6 +385,24 @@ class EyeContactDetector:
             'detection_rate': detection_rate,
             'method': 'fallback'
         }
+
+    def _create_neutral_segment_data(self, timestamps: List[float]) -> Dict[int, Dict]:
+        """Create neutral segment data when no detection is available."""
+        segment_data = {}
+        if not timestamps:
+            return segment_data
+
+        segment_duration = 3.0
+        duration = timestamps[-1] - timestamps[0] if len(timestamps) > 1 else 0
+        segment_count = max(1, int(duration / segment_duration))
+
+        for i in range(segment_count):
+            segment_data[i] = {
+                'contact_ratio': 0.5,  # Neutral
+                'gaze_stability': 0.5
+            }
+
+        return segment_data
 
     def _create_segment_data(
         self,

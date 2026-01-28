@@ -169,32 +169,44 @@ class StagePresenceAnalyzer:
         else:
             space_usage = 0.0
 
-        # Score based on movement patterns
-        # Very static = weak (sitting, not using body)
-        # Excessive movement = weak (nervous pacing)
-        # Moderate, controlled = strong
+        # CALIBRATED SCORING (Jan 2026)
+        # Key insight: SPACE USAGE is the primary differentiator between
+        # STRONG (uses whole stage) and MID/WEAK (rooted to one spot)
+        #
+        # STRONG: High space usage (0.3+), controlled movement
+        # MID: Low space usage, high movement (nervous in one spot)
+        # WEAK: Low space usage, low movement (static/sitting)
 
-        if avg_movement < 0.01:
-            # Very static - likely sitting or rooted
-            movement_quality = 0.1
-            stability = 0.8  # Stable but not in a good way
-        elif avg_movement > 0.1:
-            # Excessive movement - nervous pacing
-            movement_quality = 0.3
-            stability = 0.3
-        elif movement_variance > avg_movement:
-            # Erratic movement
-            movement_quality = 0.4
+        if avg_movement < 0.005:
+            # WEAK: Very static - likely sitting or frozen
+            movement_quality = 0.05
+            stability = 0.3  # Penalize - not using body at all
+        elif avg_movement < 0.015 and space_usage < 0.1:
+            # WEAK: Minimal movement, not using space
+            movement_quality = 0.15
             stability = 0.4
+        elif space_usage > 0.3 and avg_movement > 0.02:
+            # STRONG: Using stage space with purposeful movement
+            movement_quality = 0.85 + space_usage * 0.15
+            stability = 0.80
+        elif avg_movement > 0.06 and space_usage < 0.2:
+            # MID: High movement but not using space = nervous in one spot
+            movement_quality = 0.35
+            stability = 0.40
+        elif movement_variance > avg_movement * 0.8:
+            # MID: Erratic movement
+            movement_quality = 0.40
+            stability = 0.45
         else:
-            # Controlled, purposeful movement
-            movement_quality = 0.7
-            stability = 0.7
+            # Moderate controlled movement
+            movement_quality = 0.55 + space_usage * 0.25
+            stability = 0.60
 
+        # Final score weights: space_usage is heavily weighted
         overall_score = (
-            movement_quality * 0.4 +
-            stability * 0.3 +
-            space_usage * 0.3
+            movement_quality * 0.35 +
+            stability * 0.25 +
+            space_usage * 0.40  # Increased weight on space usage
         )
 
         # Create segment data

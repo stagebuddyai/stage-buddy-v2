@@ -331,33 +331,68 @@ class GestureAnalyzer:
         poses: List[Dict],
         timestamps: List[float]
     ) -> Dict[str, Any]:
-        """Analyze gestures from motion-based data (fallback)."""
-        # Extract motion ratios
-        motion_ratios = [p.get('motion_ratio', 0.0) for p in poses]
+        """
+        Analyze gestures from motion-based data (fallback).
 
-        # Detect movement patterns
+        Calibration Notes (Jan 2026):
+        - STRONG: High space usage + controlled movement = high intentionality
+        - MID: High motion variance + low space usage = erratic/nervous
+        - WEAK: No movement = very low intentionality
+        """
+        # Extract motion ratios and centroids
+        motion_ratios = [p.get('motion_ratio', 0.0) for p in poses]
+        centroids = [p.get('centroid', (0.5, 0.5)) for p in poses]
+
+        # Calculate basic motion stats
         avg_motion = np.mean(motion_ratios) if motion_ratios else 0.0
         motion_variance = np.var(motion_ratios) if motion_ratios else 0.0
 
-        # High variance with low mean = nervous fidgeting
-        # High mean with consistent patterns = intentional movement
-
-        if avg_motion < 0.01:
-            # Very little movement - static/sitting
-            intentionality = 0.0
-            overall_score = 0.1
-        elif motion_variance > avg_motion * 2:
-            # High variance relative to mean = erratic/nervous
-            intentionality = 0.3
-            overall_score = 0.3
-        elif avg_motion > 0.1:
-            # Significant consistent movement = likely intentional
-            intentionality = 0.7
-            overall_score = 0.6
+        # Calculate SPACE USAGE from centroid positions
+        # High variance in centroid = using the stage
+        if len(centroids) > 1:
+            centroid_xs = [c[0] for c in centroids]
+            centroid_ys = [c[1] for c in centroids]
+            space_usage_x = np.std(centroid_xs) * 4  # Scale to 0-1 range
+            space_usage_y = np.std(centroid_ys) * 4
+            space_usage = min(1.0, (space_usage_x + space_usage_y) / 2)
         else:
-            # Moderate movement
-            intentionality = 0.5
-            overall_score = 0.5
+            space_usage = 0.0
+
+        # Calculate movement CONSISTENCY (inverse of high-frequency variance)
+        # Smooth, controlled movement = low high-freq variance
+        if len(motion_ratios) > 3:
+            # High frequency variance (frame-to-frame changes)
+            motion_diffs = np.diff(motion_ratios)
+            hf_variance = np.var(motion_diffs)
+
+            # Consistency is inverse of high-frequency jitter
+            consistency = max(0, 1.0 - hf_variance * 50)
+        else:
+            consistency = 0.5
+
+        # CALIBRATED SCORING LOGIC
+        if avg_motion < 0.005:
+            # WEAK: Very little movement - static/sitting
+            intentionality = 0.05
+            overall_score = 0.05
+        elif space_usage > 0.3 and consistency > 0.5:
+            # STRONG: Uses stage space with controlled movement
+            # Intentional performance - moving with purpose
+            intentionality = 0.85 + space_usage * 0.15
+            overall_score = 0.80 + space_usage * 0.20
+        elif motion_variance > avg_motion * 0.5 or consistency < 0.4:
+            # MID/WEAK: High variance OR low consistency = erratic/nervous
+            # "Excessive gestures" that don't serve the piece
+            intentionality = 0.25 + consistency * 0.25
+            overall_score = 0.30 + consistency * 0.20
+        elif avg_motion > 0.02:
+            # Moderate movement with some space usage
+            intentionality = 0.50 + space_usage * 0.30
+            overall_score = 0.50 + space_usage * 0.30
+        else:
+            # Minimal movement
+            intentionality = 0.20
+            overall_score = 0.20
 
         # Create segment data
         segment_duration = 3.0
@@ -377,20 +412,29 @@ class GestureAnalyzer:
 
                 if seg_indices:
                     seg_motion = np.mean([motion_ratios[j] for j in seg_indices])
-                    seg_var = np.var([motion_ratios[j] for j in seg_indices])
+
+                    # Segment-level space usage
+                    seg_centroids = [centroids[j] for j in seg_indices]
+                    if len(seg_centroids) > 1:
+                        seg_space = np.std([c[0] for c in seg_centroids]) * 4
+                    else:
+                        seg_space = 0.0
 
                     # Estimate gesture count from motion peaks
                     gesture_count = self._count_motion_peaks(
                         [motion_ratios[j] for j in seg_indices]
                     )
+
+                    # Segment intentionality based on space usage
+                    seg_intentionality = intentionality * (0.7 + 0.3 * min(1, seg_space))
                 else:
                     seg_motion = 0.0
-                    seg_var = 0.0
                     gesture_count = 0
+                    seg_intentionality = 0.0
 
                 segment_data[i] = {
                     'count': gesture_count,
-                    'intentional_ratio': intentionality,
+                    'intentional_ratio': seg_intentionality,
                     'diversity': min(1.0, gesture_count / 3) if gesture_count > 0 else 0.0
                 }
 
@@ -400,7 +444,9 @@ class GestureAnalyzer:
             'segments': segment_data,
             'method': 'motion',
             'avg_motion': avg_motion,
-            'motion_variance': motion_variance
+            'motion_variance': motion_variance,
+            'space_usage': space_usage,
+            'consistency': consistency
         }
 
     def _calculate_velocities(self, poses: List[Dict]) -> Dict[str, List[float]]:
