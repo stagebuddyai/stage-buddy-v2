@@ -15,6 +15,11 @@ from .data_structures import (
     EMOTION_ADJACENCY,
     EMOTION_VA_MAP,
     emotions_are_aligned,
+    # Body Engine data structures
+    GestureType,
+    GestureEvent,
+    BodySegment,
+    BodyAnalysisResult,
 )
 
 __all__ = [
@@ -29,4 +34,9 @@ __all__ = [
     'EMOTION_ADJACENCY',
     'EMOTION_VA_MAP',
     'emotions_are_aligned',
+    # Body Engine data structures
+    'GestureType',
+    'GestureEvent',
+    'BodySegment',
+    'BodyAnalysisResult',
 ]
