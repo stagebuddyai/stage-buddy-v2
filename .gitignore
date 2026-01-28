@@ -19,3 +19,16 @@ yarn-error.log*
 # OS files
 .DS_Store
 *.pem
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
