@@ -212,6 +212,67 @@ class ProsodyFeatures:
     
 
 @dataclass
+class EngagementEvent:
+    """
+    A specific moment of audience engagement during the performance.
+    Used by Audience Engine to identify key engagement points.
+    """
+    timestamp: float                  # When this event occurred
+    duration: float                   # How long the event lasted
+    event_type: str                   # "direct_address", "strategic_pause", "emotional_peak", "pace_shift"
+    engagement_level: float           # 0-1, how engaging this moment is
+    description: str                  # Human-readable description
+
+
+@dataclass
+class AudienceSegment:
+    """
+    A time segment analyzed for audience engagement.
+    Combines multiple engagement signals into a segment-level score.
+    """
+    start_time: float
+    end_time: float
+    direct_address_ratio: float       # Ratio of direct vs indirect address (0-1)
+    pause_effectiveness: float        # How well pauses are used (0-1)
+    emotional_openness: float         # Invitation into emotional journey (0-1)
+    pace_variation: float             # Delivery variation (0-1)
+    engagement_score: float           # Combined segment score (0-1)
+
+    @property
+    def duration(self) -> float:
+        return self.end_time - self.start_time
+
+
+@dataclass
+class AudienceAnalysisResult:
+    """
+    Complete output from the Audience Engine analysis.
+    Measures how effectively the performer engages their audience.
+    """
+    # Overall Audience score (1-5 scale)
+    overall_score: float
+
+    # Sub-component scores (0-1 scale, normalized)
+    direct_address_score: float         # Speaking TO audience, not AT them
+    pacing_score: float                 # Strategic pauses for absorption
+    emotional_invitation_score: float   # Inviting audience into the journey
+    engagement_pattern_score: float     # Delivery variation for impact
+
+    # Detailed data
+    segments: List['AudienceSegment']
+    engagement_events: List['EngagementEvent']
+    engagement_curve: Optional[np.ndarray]  # Engagement level over time
+
+    # Timing and metadata
+    processing_time_ms: float
+    duration: float
+
+    # Feedback helpers
+    strength_moments: List[Dict[str, Any]] = field(default_factory=list)
+    weakness_moments: List[Dict[str, Any]] = field(default_factory=list)
+
+
+@dataclass
 class SpiritAnalysisResult:
     """
     Complete output from the Spirit Engine analysis.
@@ -376,8 +437,10 @@ class PerformanceTimeline:
     gesture_events: List['GestureEvent'] = field(default_factory=list)
     body_segments: List['BodySegment'] = field(default_factory=list)
     
-    # From Audience Engine (to be implemented)
-    engagement_opportunities: List[Dict[str, Any]] = field(default_factory=list)
+    # From Audience Engine
+    audience_result: Optional['AudienceAnalysisResult'] = None
+    engagement_events: List['EngagementEvent'] = field(default_factory=list)
+    engagement_curve: Optional[np.ndarray] = None
     
     # Overall scores
     spirit_score: float = 0.0
