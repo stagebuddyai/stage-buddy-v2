@@ -36,7 +36,14 @@ export async function createSupabaseServer() {
       },
       cookies: {
         get(name: string) {
-          return cookieStore.get(name)?.value ?? undefined;
+          const value = cookieStore.get(name)?.value;
+          if (!value) return undefined;
+          // Decode URL-encoded cookie values
+          try {
+            return decodeURIComponent(value);
+          } catch {
+            return value;
+          }
         },
         set(name: string, value: string, options: Record<string, unknown>) {
           try {
@@ -47,7 +54,18 @@ export async function createSupabaseServer() {
         },
         getAll() {
           try {
-            return cookieStore.getAll();
+            const allCookies = cookieStore.getAll();
+            // Decode URL-encoded cookie values
+            return allCookies.map(cookie => ({
+              ...cookie,
+              value: (() => {
+                try {
+                  return decodeURIComponent(cookie.value);
+                } catch {
+                  return cookie.value;
+                }
+              })()
+            }));
           } catch (error) {
             console.error('[Supabase Server] Error getting cookies:', error);
             return [];

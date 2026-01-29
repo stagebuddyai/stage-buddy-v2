@@ -13,6 +13,8 @@ const nextConfig: NextConfig = {
       ],
     },
   },
+  // Allow large file uploads for API routes
+  serverExternalPackages: [],
 };
 
 export default nextConfig;

@@ -15,7 +15,17 @@ export const supabase = createBrowserClient(
         if (typeof document === 'undefined') return null
         const value = `; ${document.cookie}`
         const parts = value.split(`; ${name}=`)
-        if (parts.length === 2) return parts.pop()?.split(';').shift() ?? null
+        if (parts.length === 2) {
+          const cookieValue = parts.pop()?.split(';').shift() ?? null
+          if (cookieValue) {
+            // Decode URL-encoded cookie value
+            try {
+              return decodeURIComponent(cookieValue)
+            } catch {
+              return cookieValue
+            }
+          }
+        }
         return null
       },
       set(name: string, value: string, options: any) {

@@ -5,12 +5,13 @@ import { promises as fs } from 'fs';
 import {
   getUploadDir,
   getResultPath,
+  getVideoPath,
   writeStatus,
   readStatus,
-  isValidAnalysisId,
   ensureDir,
 } from '@/lib/analysis/storage';
 import { getAuthenticatedUser } from '@/lib/analysis/auth-guard';
+import { createSupabaseServer } from '@/lib/supabase/server';
 
 export async function POST(req: NextRequest) {
   const user = await getAuthenticatedUser();
@@ -18,29 +19,59 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
   }
 
-  let body: { analysis_id?: string };
+  let body: { analysis_id?: string; storage_path?: string; video_extension?: string };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const { analysis_id } = body;
-  if (!analysis_id || !isValidAnalysisId(analysis_id)) {
+  const { analysis_id, storage_path, video_extension } = body;
+  if (!analysis_id) {
     return NextResponse.json({ error: 'Invalid analysis_id' }, { status: 400 });
   }
 
-  // Verify the upload exists
+  console.log('[run/route] Starting analysis:', { analysis_id, storage_path, video_extension });
+
+  // Ensure upload directory exists
   const uploadDir = getUploadDir(analysis_id);
+  await ensureDir(uploadDir);
+
   let videoFile: string | null = null;
-  try {
-    const files = await fs.readdir(uploadDir);
-    const video = files.find(f => f.startsWith('video.'));
-    if (video) {
-      videoFile = path.join(uploadDir, video);
+
+  // New flow: download from Supabase Storage
+  if (storage_path) {
+    const ext = video_extension || 'mp4';
+    videoFile = getVideoPath(analysis_id, ext);
+
+    console.log('[run/route] Downloading from Supabase Storage:', storage_path);
+    
+    // Use server client with user's session
+    const supabase = await createSupabaseServer();
+    const { data, error: downloadError } = await supabase.storage
+      .from('sb-uploads')
+      .download(storage_path);
+
+    if (downloadError || !data) {
+      console.error('[run/route] Storage download error:', downloadError);
+      return NextResponse.json({ error: 'Failed to download video from storage' }, { status: 500 });
     }
-  } catch {
-    return NextResponse.json({ error: 'Upload not found' }, { status: 404 });
+
+    // Save to local file system for Python analysis
+    const buffer = Buffer.from(await data.arrayBuffer());
+    await fs.writeFile(videoFile, buffer);
+    console.log('[run/route] Video downloaded to:', videoFile, 'size:', buffer.length);
+  } else {
+    // Old flow: check for existing local file
+    try {
+      const files = await fs.readdir(uploadDir);
+      const video = files.find(f => f.startsWith('video.'));
+      if (video) {
+        videoFile = path.join(uploadDir, video);
+      }
+    } catch {
+      return NextResponse.json({ error: 'Upload not found' }, { status: 404 });
+    }
   }
 
   if (!videoFile) {

@@ -29,7 +29,9 @@ type RunResult = {
  * Uses Server Actions' bodySizeLimit (600mb) to allow large uploads
  */
 export async function uploadVideo(formData: FormData): Promise<UploadResult> {
+  console.log('[uploadVideo] Server action called');
   try {
+    console.log('[uploadVideo] Checking auth...');
     const user = await getAuthenticatedUser();
     if (!user) {
       return { error: 'Authentication required', analysis_id: null, video_extension: null };

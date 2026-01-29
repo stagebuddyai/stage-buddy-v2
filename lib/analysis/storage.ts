@@ -71,9 +71,14 @@ export async function writeFeedback(analysisId: string, feedback: unknown): Prom
   await fs.writeFile(feedbackPath, JSON.stringify(feedback, null, 2));
 }
 
-/** Validate analysis ID format (UUID) to prevent path traversal */
+/** Validate analysis ID format (UUID or timestamp-random) to prevent path traversal */
 export function isValidAnalysisId(id: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  // Accept UUID format: 8-4-4-4-12 hex digits
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  // Accept timestamp-random format: digits-alphanumeric
+  const timestampPattern = /^[0-9]+-[a-z0-9]+$/i;
+  
+  return uuidPattern.test(id) || timestampPattern.test(id);
 }
 
 /** Supported video MIME types for upload */

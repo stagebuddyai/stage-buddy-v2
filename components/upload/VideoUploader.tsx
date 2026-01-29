@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { uploadVideo, runAnalysis } from '@/app/actions/upload';
+import { supabase } from '@/lib/supabase/client';
 
 const SUPPORTED_TYPES = [
   'video/mp4',
@@ -13,6 +13,14 @@ const SUPPORTED_TYPES = [
 ];
 
 const MAX_SIZE = 500 * 1024 * 1024; // 500MB
+
+const MIME_TO_EXT: Record<string, string> = {
+  'video/mp4': 'mp4',
+  'video/webm': 'webm',
+  'video/quicktime': 'mov',
+  'video/x-msvideo': 'avi',
+  'video/x-matroska': 'mkv',
+};
 
 export default function VideoUploader() {
   const router = useRouter();
@@ -68,33 +76,65 @@ export default function VideoUploader() {
   const handleUpload = async () => {
     if (!file) return;
 
+    console.log('[handleUpload] Starting upload for file:', file.name, file.size);
     setUploading(true);
     setError(null);
-    setProgress('Uploading video...');
+    setProgress('Checking authentication...');
 
     try {
-      // Step 1: Upload the file using Server Action (has 600MB body limit)
-      const formData = new FormData();
-      formData.append('video', file);
-
-      const uploadResult = await uploadVideo(formData);
-
-      if (uploadResult.error || !uploadResult.analysis_id) {
-        throw new Error(uploadResult.error || 'Upload failed');
+      // Get current user
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        throw new Error('Authentication required. Please sign in again.');
       }
+      console.log('[handleUpload] User authenticated:', user.id);
+
+      // Generate analysis ID
+      const analysisId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      const extension = MIME_TO_EXT[file.type] || 'mp4';
+      const storagePath = `${user.id}/${analysisId}/video.${extension}`;
+
+      setProgress('Uploading video to storage...');
+      console.log('[handleUpload] Uploading to Supabase Storage:', storagePath);
+
+      // Upload directly to Supabase Storage (bypasses nginx proxy)
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('sb-uploads')
+        .upload(storagePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (uploadError) {
+        console.error('[handleUpload] Storage upload error:', uploadError);
+        throw new Error(uploadError.message || 'Failed to upload video');
+      }
+      console.log('[handleUpload] Upload successful:', uploadData);
 
       setProgress('Starting analysis...');
 
-      // Step 2: Trigger analysis using Server Action
-      const runResult = await runAnalysis(uploadResult.analysis_id);
+      // Call API to register the upload and start analysis
+      const runRes = await fetch('/api/analysis/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          analysis_id: analysisId,
+          storage_path: storagePath,
+          video_extension: extension,
+        }),
+      });
+      
+      const runResult = await runRes.json();
+      console.log('[handleUpload] Run result:', runResult);
 
-      if (runResult.error) {
-        throw new Error(runResult.error);
+      if (!runRes.ok || runResult.error) {
+        throw new Error(runResult.error || 'Analysis failed to start');
       }
 
-      // Step 3: Redirect to analysis page
-      router.push(`/analysis/${uploadResult.analysis_id}`);
+      // Redirect to analysis page
+      router.push(`/analysis/${analysisId}`);
     } catch (err) {
+      console.error('[handleUpload] Error:', err);
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
       setUploading(false);
       setProgress('');

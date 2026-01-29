@@ -14,11 +14,19 @@ import {
 } from '@/lib/analysis/storage';
 import { getAuthenticatedUser } from '@/lib/analysis/auth-guard';
 
+// Route segment config for large file uploads (App Router syntax)
+export const dynamic = 'force-dynamic';
+export const maxDuration = 300; // 5 minutes for large uploads
+
 export async function POST(req: NextRequest) {
+  console.log('[upload/route] POST received');
+  
   const user = await getAuthenticatedUser();
   if (!user) {
+    console.log('[upload/route] No authenticated user');
     return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
   }
+  console.log('[upload/route] User authenticated:', user.id);
 
   let formData: FormData;
   try {
