@@ -36,12 +36,12 @@ export default function AuthButtons({ connected }: { connected: boolean }) {
         alert(`Sign in failed: ${result.error || 'No URL returned'}`)
         setIsLoading(false)
       } else {
-        // Redirect to OAuth provider
+        // Redirect to OAuth provider (loading state remains until redirect)
         window.location.href = result.url
       }
     } catch (error) {
       console.error('Sign in error:', error)
-      alert('Sign in failed. Please try again.')
+      alert(`Sign in failed: ${error instanceof Error ? error.message : 'Please try again.'}`)
       setIsLoading(false)
     }
   }
