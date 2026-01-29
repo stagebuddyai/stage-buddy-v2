@@ -1,12 +1,11 @@
 'use server'
 
 import { createSupabaseServer } from "@/lib/supabase/server";
-import { getAuthOrigin } from "@/lib/auth/origin";
-import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
 /**
  * Server Action: Initiates Google OAuth flow
+ * Returns the OAuth URL for client-side redirect
  * This properly handles cookie setting in Server Actions (not Server Components)
  */
 export async function signInWithGoogle() {
@@ -24,7 +23,7 @@ export async function signInWithGoogle() {
       provider: "google",
       options: {
         redirectTo: callbackUrl,
-        skipBrowserRedirect: false,
+        skipBrowserRedirect: true, // Return URL instead of auto-redirecting
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
@@ -34,24 +33,25 @@ export async function signInWithGoogle() {
 
     if (error) {
       console.error("[signInWithGoogle] error:", error);
-      throw new Error(error.message);
+      return { error: error.message, url: null };
     }
 
     if (!data?.url) {
       console.error("[signInWithGoogle] no redirect url returned");
-      throw new Error("No redirect url returned");
+      return { error: "No redirect url returned", url: null };
     }
 
-    // Redirect to OAuth provider
-    redirect(data.url);
+    console.log("[signInWithGoogle] OAuth URL generated successfully");
+    return { error: null, url: data.url };
   } catch (error) {
     console.error("[signInWithGoogle] exception:", error);
-    throw error;
+    return { error: error instanceof Error ? error.message : "Unknown error", url: null };
   }
 }
 
 /**
  * Server Action: Signs out the user
+ * Returns success status for client-side handling
  * This properly handles cookie removal in Server Actions (not Server Components)
  */
 export async function signOut() {
@@ -61,16 +61,14 @@ export async function signOut() {
 
     if (error) {
       console.error("[signOut] error:", error);
-      throw new Error(error.message);
+      return { error: error.message, success: false };
     }
 
     console.log("[signOut] successfully signed out");
-    
-    // Redirect to home after successful sign out
-    redirect('/');
+    return { error: null, success: true };
   } catch (error) {
     console.error("[signOut] exception:", error);
-    throw error;
+    return { error: error instanceof Error ? error.message : "Unknown error", success: false };
   }
 }
 

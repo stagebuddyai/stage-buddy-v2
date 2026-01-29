@@ -2,16 +2,27 @@
 
 import { signInWithGoogle, signOut } from '@/app/actions/auth'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 export default function AuthButtons({ connected }: { connected: boolean }) {
   const [isLoading, setIsLoading] = useState(false)
+  const router = useRouter()
 
   const handleSignOut = async () => {
     setIsLoading(true)
     try {
-      await signOut()
+      const result = await signOut()
+      if (result.error) {
+        console.error('Sign out error:', result.error)
+        alert(`Sign out failed: ${result.error}`)
+        setIsLoading(false)
+      } else {
+        // Refresh the page to update UI
+        router.refresh()
+      }
     } catch (error) {
       console.error('Sign out error:', error)
+      alert('Sign out failed. Please try again.')
       setIsLoading(false)
     }
   }
@@ -19,9 +30,18 @@ export default function AuthButtons({ connected }: { connected: boolean }) {
   const handleSignIn = async () => {
     setIsLoading(true)
     try {
-      await signInWithGoogle()
+      const result = await signInWithGoogle()
+      if (result.error || !result.url) {
+        console.error('Sign in error:', result.error)
+        alert(`Sign in failed: ${result.error || 'No URL returned'}`)
+        setIsLoading(false)
+      } else {
+        // Redirect to OAuth provider
+        window.location.href = result.url
+      }
     } catch (error) {
       console.error('Sign in error:', error)
+      alert('Sign in failed. Please try again.')
       setIsLoading(false)
     }
   }
