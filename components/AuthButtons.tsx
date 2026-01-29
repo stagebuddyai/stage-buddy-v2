@@ -17,8 +17,10 @@ export default function AuthButtons({ connected }: { connected: boolean }) {
         alert(`Sign out failed: ${result.error}`)
         setIsLoading(false)
       } else {
-        // Refresh the page to update UI
+        // Refresh the page to update UI, then reset loading
         router.refresh()
+        // Small delay to allow refresh to take effect, then reset state
+        setTimeout(() => setIsLoading(false), 100)
       }
     } catch (error) {
       console.error('Sign out error:', error)
