@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { uploadVideo, runAnalysis } from '@/app/actions/upload';
 
 const SUPPORTED_TYPES = [
   'video/mp4',
@@ -72,50 +73,27 @@ export default function VideoUploader() {
     setProgress('Uploading video...');
 
     try {
-      // Step 1: Upload the file
+      // Step 1: Upload the file using Server Action (has 600MB body limit)
       const formData = new FormData();
       formData.append('video', file);
 
-      const uploadRes = await fetch('/api/analysis/upload', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include', // Include cookies for authentication
-      });
+      const uploadResult = await uploadVideo(formData);
 
-      if (!uploadRes.ok) {
-        // Check if response is JSON before parsing
-        const contentType = uploadRes.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          const data = await uploadRes.json();
-          throw new Error(data.error || 'Upload failed');
-        } else {
-          throw new Error(`Upload failed (${uploadRes.status})`);
-        }
+      if (uploadResult.error || !uploadResult.analysis_id) {
+        throw new Error(uploadResult.error || 'Upload failed');
       }
 
-      const { analysis_id } = await uploadRes.json();
       setProgress('Starting analysis...');
 
-      // Step 2: Trigger analysis
-      const runRes = await fetch('/api/analysis/run', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ analysis_id }),
-        credentials: 'include', // Include cookies for authentication
-      });
+      // Step 2: Trigger analysis using Server Action
+      const runResult = await runAnalysis(uploadResult.analysis_id);
 
-      if (!runRes.ok) {
-        const contentType = runRes.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          const data = await runRes.json();
-          throw new Error(data.error || 'Failed to start analysis');
-        } else {
-          throw new Error(`Failed to start analysis (${runRes.status})`);
-        }
+      if (runResult.error) {
+        throw new Error(runResult.error);
       }
 
       // Step 3: Redirect to analysis page
-      router.push(`/analysis/${analysis_id}`);
+      router.push(`/analysis/${uploadResult.analysis_id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
       setUploading(false);
