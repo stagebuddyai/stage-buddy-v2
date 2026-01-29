@@ -16,8 +16,13 @@ type SignInResult = {
 export async function signInWithGoogle(): Promise<SignInResult> {
   try {
     const headersList = await headers();
-    const host = headersList.get('host') || 'localhost:3000';
-    const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https';
+    
+    // Handle GitHub Codespaces forwarded headers
+    const forwardedHost = headersList.get('x-forwarded-host');
+    const forwardedProto = headersList.get('x-forwarded-proto');
+    const host = forwardedHost || headersList.get('host') || 'localhost:3000';
+    const protocol = forwardedProto || (process.env.NODE_ENV === 'development' ? 'http' : 'https');
+    
     const origin = process.env.NEXT_PUBLIC_SITE_URL || `${protocol}://${host}`;
     const callbackUrl = `${origin}/api/auth/callback`;
 

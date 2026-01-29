@@ -5,6 +5,12 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
       bodySizeLimit: "600mb",
+      // Allow Server Actions from GitHub Codespaces forwarded URLs
+      allowedOrigins: [
+        'localhost:3000',
+        '*.app.github.dev', // GitHub Codespaces
+        '*.preview.app.github.dev',
+      ],
     },
   },
 };
