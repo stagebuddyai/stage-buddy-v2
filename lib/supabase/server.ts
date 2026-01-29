@@ -3,9 +3,22 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
 /**
- * Server-side Supabase client for Next.js App Router route handlers and server components.
- * Adapter uses next/headers cookies() and implements getAll / setAll as required by @supabase/ssr.
- *
+ * Server-side Supabase client for Next.js App Router.
+ * 
+ * IMPORTANT: This client is READ-ONLY in Server Components.
+ * - Use for reading session data (e.g., getSession(), getUser())
+ * - DO NOT use for auth operations that modify cookies (signIn, signOut, etc.)
+ * 
+ * For auth operations that modify cookies, use Server Actions from app/actions/auth.ts:
+ * - signInWithGoogle()
+ * - signOut()
+ * - refreshSession()
+ * 
+ * This client is safe to use in:
+ * - Route Handlers (app/api/*)
+ * - Server Actions (files with 'use server')
+ * - Server Components (read-only operations only)
+ * 
  * Exported name matches existing usage in the repo (createSupabaseServer).
  */
 export async function createSupabaseServer() {
@@ -50,9 +63,10 @@ export async function createSupabaseServer() {
               });
             });
           } catch (error) {
-            // Cookies cannot be set in Server Components, only in Route Handlers or Server Actions
-            // This is expected behavior for read-only operations
-            console.debug('[Supabase Server] Could not set cookies:', error);
+            // NOTE: Cookie writes fail in Server Components (Next.js 13+ restriction)
+            // This is expected for read-only operations like getSession() in Server Components
+            // For auth operations (signIn, signOut), use Server Actions from app/actions/auth.ts
+            console.debug('[Supabase Server] Cookie write failed (expected in Server Components):', error);
           }
         },
         remove(name: string, options: Record<string, unknown>) {
