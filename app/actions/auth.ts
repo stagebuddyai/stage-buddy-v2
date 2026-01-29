@@ -3,12 +3,17 @@
 import { createSupabaseServer } from "@/lib/supabase/server";
 import { headers } from "next/headers";
 
+type SignInResult = {
+  error: string | null;
+  url: string | null;
+}
+
 /**
  * Server Action: Initiates Google OAuth flow
  * Returns the OAuth URL for client-side redirect
  * This properly handles cookie setting in Server Actions (not Server Components)
  */
-export async function signInWithGoogle() {
+export async function signInWithGoogle(): Promise<SignInResult> {
   try {
     const headersList = await headers();
     const host = headersList.get('host') || 'localhost:3000';
@@ -49,12 +54,17 @@ export async function signInWithGoogle() {
   }
 }
 
+type SignOutResult = {
+  error: string | null;
+  success: boolean;
+}
+
 /**
  * Server Action: Signs out the user
  * Returns success status for client-side handling
  * This properly handles cookie removal in Server Actions (not Server Components)
  */
-export async function signOut() {
+export async function signOut(): Promise<SignOutResult> {
   try {
     const supabase = await createSupabaseServer();
     const { error } = await supabase.auth.signOut();
