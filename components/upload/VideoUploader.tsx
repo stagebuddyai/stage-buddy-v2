@@ -79,11 +79,18 @@ export default function VideoUploader() {
       const uploadRes = await fetch('/api/analysis/upload', {
         method: 'POST',
         body: formData,
+        credentials: 'include', // Include cookies for authentication
       });
 
       if (!uploadRes.ok) {
-        const data = await uploadRes.json();
-        throw new Error(data.error || 'Upload failed');
+        // Check if response is JSON before parsing
+        const contentType = uploadRes.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const data = await uploadRes.json();
+          throw new Error(data.error || 'Upload failed');
+        } else {
+          throw new Error(`Upload failed (${uploadRes.status})`);
+        }
       }
 
       const { analysis_id } = await uploadRes.json();
@@ -94,11 +101,17 @@ export default function VideoUploader() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ analysis_id }),
+        credentials: 'include', // Include cookies for authentication
       });
 
       if (!runRes.ok) {
-        const data = await runRes.json();
-        throw new Error(data.error || 'Failed to start analysis');
+        const contentType = runRes.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const data = await runRes.json();
+          throw new Error(data.error || 'Failed to start analysis');
+        } else {
+          throw new Error(`Failed to start analysis (${runRes.status})`);
+        }
       }
 
       // Step 3: Redirect to analysis page
