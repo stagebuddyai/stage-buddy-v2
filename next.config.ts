@@ -5,6 +5,12 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
       bodySizeLimit: "600mb",
+      // Allow Server Actions from GitHub Codespaces and local development
+      // Note: Wildcards not supported, use actual Codespaces hostname
+      allowedOrigins: [
+        'localhost:3000',
+        'improved-goggles-r4qvq4qq95vpf59r7-3000.app.github.dev',
+      ],
     },
   },
 };

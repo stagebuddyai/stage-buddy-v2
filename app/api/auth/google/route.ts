@@ -3,8 +3,12 @@ import { createSupabaseServer } from "../../../../lib/supabase/server";
 import { getAuthOrigin } from "../../../../lib/auth/origin";
 
 /**
+ * DEPRECATED: Use Server Action signInWithGoogle() from app/actions/auth.ts instead
+ * 
  * Starts the OAuth flow by returning a redirect to Supabase's OAuth URL.
  * redirectTo uses NEXT_PUBLIC_SITE_URL so forwarded Codespaces origin is used (never localhost).
+ * 
+ * This route handler is kept for backward compatibility.
  */
 export async function GET(req: NextRequest) {
   const origin = getAuthOrigin(req);
