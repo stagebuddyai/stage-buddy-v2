@@ -45,19 +45,22 @@ def get_video_duration(video_path: str) -> float:
         ], capture_output=True, text=True, check=True, timeout=10)
 
         duration = float(result.stdout.strip())
+        print(f"✅ ffprobe extracted duration: {duration:.2f}s for {os.path.basename(video_path)}", file=sys.stderr)
 
         # Sanity check: duration should be positive and reasonable
         # Minimum 30s to ensure timestamp logic works correctly
         if duration >= 30 and duration <= 7200:  # 30s to 2 hours
             return duration
         else:
-            raise ValueError(f"Invalid duration: {duration}")
+            raise ValueError(f"Invalid duration: {duration}s (must be 30s-7200s)")
 
     except (subprocess.CalledProcessError, ValueError, FileNotFoundError, subprocess.TimeoutExpired) as e:
         # Fallback to file size estimation if ffprobe fails
         print(f"⚠️  Warning: Could not extract video duration ({e}). Using file size estimation.", file=sys.stderr)
         file_size = os.path.getsize(video_path)
-        return max(60, min(600, file_size // 50000))
+        fallback_duration = max(60, min(600, file_size // 50000))
+        print(f"📊 File size fallback: {file_size} bytes → {fallback_duration}s duration", file=sys.stderr)
+        return fallback_duration
 
 
 def score_to_display(score: float) -> str:

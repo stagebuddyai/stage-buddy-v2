@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
     '--analysis-id', analysis_id,
   ], {
     detached: true,
-    stdio: 'ignore',
+    stdio: ['ignore', 'inherit', 'inherit'], // pipe stdout/stderr to console
   });
 
   child.unref();
