@@ -19,6 +19,7 @@ import hashlib
 import random
 import time
 import math
+import subprocess
 
 
 def hash_file(filepath: str, chunk_size: int = 1024 * 1024) -> str:
@@ -28,6 +29,35 @@ def hash_file(filepath: str, chunk_size: int = 1024 * 1024) -> str:
         chunk = f.read(chunk_size)
         h.update(chunk)
     return h.hexdigest()
+
+
+def get_video_duration(video_path: str) -> float:
+    """
+    Extract actual video duration in seconds using ffprobe.
+    Falls back to file size estimation if ffprobe is unavailable.
+    """
+    try:
+        result = subprocess.run([
+            'ffprobe', '-v', 'error',
+            '-show_entries', 'format=duration',
+            '-of', 'default=noprint_wrappers=1:nokey=1',
+            video_path
+        ], capture_output=True, text=True, check=True, timeout=10)
+
+        duration = float(result.stdout.strip())
+
+        # Sanity check: duration should be positive and reasonable
+        # Minimum 30s to ensure timestamp logic works correctly
+        if duration >= 30 and duration <= 7200:  # 30s to 2 hours
+            return duration
+        else:
+            raise ValueError(f"Invalid duration: {duration}")
+
+    except (subprocess.CalledProcessError, ValueError, FileNotFoundError, subprocess.TimeoutExpired) as e:
+        # Fallback to file size estimation if ffprobe fails
+        print(f"⚠️  Warning: Could not extract video duration ({e}). Using file size estimation.", file=sys.stderr)
+        file_size = os.path.getsize(video_path)
+        return max(60, min(600, file_size // 50000))
 
 
 def score_to_display(score: float) -> str:
@@ -502,9 +532,8 @@ def generate_report(video_path: str, analysis_id: str) -> dict:
     seed = int(file_hash[:8], 16)
     rng = random.Random(seed)
 
-    # File size as rough duration proxy (Beta)
-    file_size = os.path.getsize(video_path)
-    duration = max(60, min(600, file_size // 50000))
+    # Extract actual video duration using ffprobe
+    duration = get_video_duration(video_path)
 
     # Generate pillar scores (1-5 scale, consistent per file)
     spirit_score = round(rng.uniform(2.5, 4.8), 1)
