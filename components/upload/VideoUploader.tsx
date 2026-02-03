@@ -89,8 +89,8 @@ export default function VideoUploader() {
       }
       console.log('[handleUpload] User authenticated:', user.id);
 
-      // Generate analysis ID
-      const analysisId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      // Generate analysis ID (UUID format required by database)
+      const analysisId = crypto.randomUUID();
       const extension = MIME_TO_EXT[file.type] || 'mp4';
       const storagePath = `${user.id}/${analysisId}/video.${extension}`;
 
