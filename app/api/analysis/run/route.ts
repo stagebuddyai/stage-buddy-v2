@@ -99,6 +99,13 @@ export async function POST(req: NextRequest) {
 
   // Spawn Python orchestrator subprocess (fire and forget)
   const pythonScript = path.join(process.cwd(), 'python', 'run_analysis.py');
+
+  // Ensure ffprobe is in PATH for the subprocess
+  const env = {
+    ...process.env,
+    PATH: `${process.env.PATH}:/usr/local/bin:/usr/bin:/bin`,
+  };
+
   const child = spawn('python3', [
     pythonScript,
     '--video-path', videoFile,
@@ -106,7 +113,8 @@ export async function POST(req: NextRequest) {
     '--analysis-id', analysis_id,
   ], {
     detached: true,
-    stdio: 'ignore',
+    stdio: ['ignore', 'inherit', 'inherit'], // pipe stdout/stderr to console
+    env,
   });
 
   child.unref();
