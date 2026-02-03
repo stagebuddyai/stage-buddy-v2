@@ -11,16 +11,9 @@ from typing import List, Dict, Any, Optional
 import numpy as np
 import logging
 
-try:
-    from speechbrain.inference.interfaces import foreign_class
-    SPEECHBRAIN_AVAILABLE = True
-except ImportError:
-    try:
-        from speechbrain.pretrained.interfaces import foreign_class
-        SPEECHBRAIN_AVAILABLE = True
-    except ImportError:
-        SPEECHBRAIN_AVAILABLE = False
-        logging.warning("speechbrain not installed. Install with: pip install speechbrain")
+# DO NOT import speechbrain at module level - it has torchaudio dependencies
+# that fail at import time. Import it lazily when needed.
+SPEECHBRAIN_AVAILABLE = None  # Will be determined on first use
 
 try:
     import torch
@@ -109,9 +102,16 @@ class VocalEmotionDetector:
             self.device = "cuda" if TORCH_AVAILABLE and torch.cuda.is_available() else "cpu"
         else:
             self.device = device
-        
-        if SPEECHBRAIN_AVAILABLE and TORCH_AVAILABLE:
+
+        # Try to load SpeechBrain model (lazy import to avoid import-time errors)
+        if TORCH_AVAILABLE:
             try:
+                # Import speechbrain only when needed (deferred import)
+                try:
+                    from speechbrain.inference.interfaces import foreign_class
+                except ImportError:
+                    from speechbrain.pretrained.interfaces import foreign_class
+
                 self.classifier = foreign_class(
                     source=model_source,
                     pymodule_file="custom_interface.py",
@@ -120,9 +120,8 @@ class VocalEmotionDetector:
                 )
                 logger.info(f"Loaded SpeechBrain emotion model on {self.device}")
             except (ImportError, AttributeError) as e:
-                # Handle both import errors and compatibility issues (like torchaudio.list_audio_backends)
-                logger.warning(f"Failed to load SpeechBrain model due to dependency issue: {e}")
-                logger.warning("This is usually caused by torchaudio/speechbrain version mismatch")
+                # Handle import errors and compatibility issues (like torchaudio.list_audio_backends)
+                logger.warning(f"Could not load SpeechBrain: {e}")
                 logger.warning("Using prosody-based emotion detection fallback")
                 self.classifier = None
             except Exception as e:
@@ -130,7 +129,8 @@ class VocalEmotionDetector:
                 logger.warning("Using prosody-based fallback")
                 self.classifier = None
         else:
-            logger.warning("SpeechBrain or PyTorch not available - using prosody-based fallback")
+            logger.warning("PyTorch not available - using prosody-based fallback")
+            self.classifier = None
     
     def detect_emotions_from_file(
         self,
