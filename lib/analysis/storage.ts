@@ -46,9 +46,18 @@ export async function createPerformance(
   videoPath: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    console.log('[createPerformance] Creating performance record:', { analysisId, userId, videoPath });
     const supabase = await createSupabaseServer();
 
-    const { error } = await supabase
+    // Verify we have auth context
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.error('[createPerformance] ❌ No authenticated user found in Supabase client');
+      return { success: false, error: 'No authenticated user' };
+    }
+    console.log('[createPerformance] Authenticated user:', user.id);
+
+    const { error, data } = await supabase
       .from('performances')
       .insert({
         id: analysisId,
@@ -57,16 +66,21 @@ export async function createPerformance(
         video_path: videoPath,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      });
+      })
+      .select();
 
     if (error) {
-      console.error('[createPerformance] Database error:', error);
+      console.error('[createPerformance] ❌ Database INSERT error:', JSON.stringify(error, null, 2));
+      console.error('[createPerformance] Error code:', error.code);
+      console.error('[createPerformance] Error message:', error.message);
+      console.error('[createPerformance] Error details:', error.details);
       return { success: false, error: error.message };
     }
 
+    console.log('[createPerformance] ✅ Successfully inserted record:', data);
     return { success: true };
   } catch (err) {
-    console.error('[createPerformance] Exception:', err);
+    console.error('[createPerformance] ❌ Exception:', err);
     return { success: false, error: String(err) };
   }
 }
@@ -128,10 +142,19 @@ export async function writeResult(
   result: PerformanceReport
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    console.log('[writeResult] Writing result to database:', { analysisId, userId, resultSize: JSON.stringify(result).length });
     const supabase = await createSupabaseServer();
 
+    // Verify we have auth context
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      console.error('[writeResult] ❌ No authenticated user found in Supabase client');
+      return { success: false, error: 'No authenticated user' };
+    }
+    console.log('[writeResult] Authenticated user:', user.id);
+
     // Use upsert to handle both insert and update cases
-    const { error } = await supabase
+    const { error, data } = await supabase
       .from('analysis_results')
       .upsert({
         performance_id: analysisId,
@@ -140,16 +163,21 @@ export async function writeResult(
         created_at: new Date().toISOString(),
       }, {
         onConflict: 'performance_id',
-      });
+      })
+      .select();
 
     if (error) {
-      console.error('[writeResult] Database error:', error);
+      console.error('[writeResult] ❌ Database UPSERT error:', JSON.stringify(error, null, 2));
+      console.error('[writeResult] Error code:', error.code);
+      console.error('[writeResult] Error message:', error.message);
+      console.error('[writeResult] Error details:', error.details);
       return { success: false, error: error.message };
     }
 
+    console.log('[writeResult] ✅ Successfully upserted result:', data);
     return { success: true };
   } catch (err) {
-    console.error('[writeResult] Exception:', err);
+    console.error('[writeResult] ❌ Exception:', err);
     return { success: false, error: String(err) };
   }
 }

@@ -37,14 +37,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'storage_path is required' }, { status: 400 });
   }
 
-  console.log('[run/route] Starting analysis:', { analysis_id, storage_path, video_extension });
+  console.log('[run/route] Starting analysis:', { analysis_id, storage_path, video_extension, user_id: user.id });
 
   // Create performance record in database
+  console.log('[run/route] Creating performance record in database...');
   const createResult = await createPerformance(analysis_id, user.id, storage_path);
   if (!createResult.success) {
-    console.error('[run/route] Failed to create performance record:', createResult.error);
-    return NextResponse.json({ error: 'Failed to initialize analysis' }, { status: 500 });
+    console.error('[run/route] ❌ FAILED to create performance record');
+    console.error('[run/route] Error details:', createResult.error);
+    console.error('[run/route] Analysis ID:', analysis_id);
+    console.error('[run/route] User ID:', user.id);
+    console.error('[run/route] Storage path:', storage_path);
+    return NextResponse.json({
+      error: 'Failed to initialize analysis in database',
+      details: createResult.error
+    }, { status: 500 });
   }
+  console.log('[run/route] ✅ Performance record created successfully');
 
   // Create temporary directory for video processing
   const tempUploadDir = path.join(TEMP_DIR, 'uploads', analysis_id);
@@ -134,24 +143,28 @@ async function monitorAnalysis(analysisId: string, userId: string, tempResultPat
       const resultData = await fs.readFile(tempResultPath, 'utf-8');
       const result = JSON.parse(resultData) as PerformanceReport;
 
-      console.log('[monitorAnalysis] Analysis complete, writing to database:', analysisId);
+      console.log('[monitorAnalysis] ✅ Analysis complete, writing to database:', analysisId);
 
       // Write result to database
+      console.log('[monitorAnalysis] Writing analysis results to database...');
       const writeResultStatus = await writeResult(analysisId, userId, result);
       if (!writeResultStatus.success) {
-        console.error('[monitorAnalysis] Failed to write result to database:', writeResultStatus.error);
+        console.error('[monitorAnalysis] ❌ FAILED to write result to database');
+        console.error('[monitorAnalysis] Error:', writeResultStatus.error);
         await updatePerformanceStatus(analysisId, 'error', {
           error: `Failed to save results: ${writeResultStatus.error}`,
         });
         return;
       }
+      console.log('[monitorAnalysis] ✅ Result written to analysis_results table');
 
       // Update status to complete in database
+      console.log('[monitorAnalysis] Updating performance status to complete...');
       await updatePerformanceStatus(analysisId, 'complete', {
         completedAt: new Date().toISOString(),
       });
 
-      console.log('[monitorAnalysis] Successfully persisted results to database:', analysisId);
+      console.log('[monitorAnalysis] ✅ Successfully persisted all data to database:', analysisId);
 
       // Clean up temporary files
       try {
