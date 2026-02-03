@@ -710,8 +710,16 @@ def generate_report(video_path: str, analysis_id: str) -> dict:
     NO FALLBACK - If real analysis fails, the error will propagate and crash.
     This ensures we see the actual problem instead of masking it with random scores.
     """
+    # PROOF OF EXECUTION: Write marker file
+    marker_file = "/tmp/NEW_CODE_EXECUTED.txt"
+    with open(marker_file, 'w') as f:
+        f.write(f"NEW CODE EXECUTED at {time.time()}\n")
+        f.write(f"analysis_id: {analysis_id}\n")
+        f.write(f"NO FALLBACK LOGIC PRESENT\n")
+
     print("=" * 80, file=sys.stderr)
     print("🔥 USING NEW CODE - NO FALLBACK LOGIC - WILL CRASH ON ERROR", file=sys.stderr)
+    print(f"🔥 PROOF WRITTEN TO: {marker_file}", file=sys.stderr)
     print("=" * 80, file=sys.stderr)
 
     # Run real analysis engines - NO TRY/EXCEPT, LET IT FAIL LOUDLY
