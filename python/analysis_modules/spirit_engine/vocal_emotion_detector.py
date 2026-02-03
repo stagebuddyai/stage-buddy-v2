@@ -11,23 +11,27 @@ from typing import List, Dict, Any, Optional
 import numpy as np
 import logging
 
-try:
-    from speechbrain.inference.interfaces import foreign_class
-    SPEECHBRAIN_AVAILABLE = True
-except ImportError:
-    try:
-        from speechbrain.pretrained.interfaces import foreign_class
-        SPEECHBRAIN_AVAILABLE = True
-    except ImportError:
-        SPEECHBRAIN_AVAILABLE = False
-        logging.warning("speechbrain not installed. Install with: pip install speechbrain")
+# DO NOT import speechbrain at module level - it has torchaudio dependencies
+# that fail at import time. Import it lazily when needed.
+SPEECHBRAIN_AVAILABLE = None  # Will be determined on first use
 
 try:
     import torch
-    import torchaudio
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
+
+try:
+    import torchaudio
+    # Test for the compatibility issue
+    _ = torchaudio.load  # Just check if basic loading works
+    TORCHAUDIO_AVAILABLE = True
+except (ImportError, AttributeError) as e:
+    # Handle both import errors and compatibility issues
+    TORCHAUDIO_AVAILABLE = False
+    if TORCH_AVAILABLE:
+        logging.warning(f"torchaudio has compatibility issues: {e}")
+        logging.warning("Will use librosa for audio loading instead")
 
 try:
     import librosa
@@ -98,9 +102,16 @@ class VocalEmotionDetector:
             self.device = "cuda" if TORCH_AVAILABLE and torch.cuda.is_available() else "cpu"
         else:
             self.device = device
-        
-        if SPEECHBRAIN_AVAILABLE:
+
+        # Try to load SpeechBrain model (lazy import to avoid import-time errors)
+        if TORCH_AVAILABLE:
             try:
+                # Import speechbrain only when needed (deferred import)
+                try:
+                    from speechbrain.inference.interfaces import foreign_class
+                except ImportError:
+                    from speechbrain.pretrained.interfaces import foreign_class
+
                 self.classifier = foreign_class(
                     source=model_source,
                     pymodule_file="custom_interface.py",
@@ -108,12 +119,18 @@ class VocalEmotionDetector:
                     run_opts={"device": self.device}
                 )
                 logger.info(f"Loaded SpeechBrain emotion model on {self.device}")
+            except (ImportError, AttributeError) as e:
+                # Handle import errors and compatibility issues (like torchaudio.list_audio_backends)
+                logger.warning(f"Could not load SpeechBrain: {e}")
+                logger.warning("Using prosody-based emotion detection fallback")
+                self.classifier = None
             except Exception as e:
                 logger.warning(f"Failed to load SpeechBrain model: {e}")
                 logger.warning("Using prosody-based fallback")
                 self.classifier = None
         else:
-            logger.warning("SpeechBrain not available - using prosody-based fallback")
+            logger.warning("PyTorch not available - using prosody-based fallback")
+            self.classifier = None
     
     def detect_emotions_from_file(
         self,
@@ -135,7 +152,7 @@ class VocalEmotionDetector:
         # Load audio - prefer librosa for better compatibility
         if LIBROSA_AVAILABLE:
             audio_array, sr = librosa.load(audio_path, sr=self.sample_rate, mono=True)
-        elif TORCH_AVAILABLE:
+        elif TORCHAUDIO_AVAILABLE and TORCH_AVAILABLE:
             try:
                 waveform, sr = torchaudio.load(audio_path)
                 if sr != self.sample_rate:
@@ -146,11 +163,15 @@ class VocalEmotionDetector:
                     waveform = waveform.mean(dim=0, keepdim=True)
                 audio_array = waveform.squeeze().numpy()
                 sr = self.sample_rate
-            except ImportError:
-                # Fallback to librosa if torchaudio has issues
-                audio_array, sr = librosa.load(audio_path, sr=self.sample_rate, mono=True)
+            except Exception as e:
+                # Fallback to librosa if torchaudio has any issues
+                logger.warning(f"torchaudio loading failed: {e}, using librosa fallback")
+                if LIBROSA_AVAILABLE:
+                    audio_array, sr = librosa.load(audio_path, sr=self.sample_rate, mono=True)
+                else:
+                    raise RuntimeError(f"Audio loading failed: {e}")
         else:
-            raise RuntimeError("Neither torch/torchaudio nor librosa available")
+            raise RuntimeError("Neither torch/torchaudio nor librosa available for audio loading")
         
         duration = len(audio_array) / sr
         
