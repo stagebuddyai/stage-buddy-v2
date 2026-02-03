@@ -4,7 +4,10 @@
 # Core audio analysis
 opensmile>=2.5.0
 librosa>=0.10.0
-numpy>=1.24.0,<2.0.0
+
+# NumPy - CRITICAL: Must be <2.4 for Numba compatibility
+# Numba 0.63.x only supports NumPy 2.0-2.3
+numpy>=2.0.0,<2.4
 
 # Speech emotion recognition (compatible versions)
 # Note: speechbrain 1.0+ is compatible with torchaudio 2.1+
