@@ -706,59 +706,25 @@ def generate_report(video_path: str, analysis_id: str) -> dict:
     Generate a performance analysis report using real analysis engines.
 
     Runs Spirit, Chest, Body, and Audience engines on the performance.
+
+    NO FALLBACK - If real analysis fails, the error will propagate and crash.
+    This ensures we see the actual problem instead of masking it with random scores.
     """
-    # Use real analysis engines
-    try:
-        analysis_results = run_real_analysis(video_path)
+    # Run real analysis engines - NO TRY/EXCEPT, LET IT FAIL LOUDLY
+    analysis_results = run_real_analysis(video_path)
 
-        # Extract scores from real analysis
-        spirit_score = analysis_results['spirit']['score']
-        spirit_subs = analysis_results['spirit']['subscores']
+    # Extract scores from real analysis
+    spirit_score = analysis_results['spirit']['score']
+    spirit_subs = analysis_results['spirit']['subscores']
 
-        chest_score = analysis_results['chest']['score']
-        chest_subs = analysis_results['chest']['subscores']
+    chest_score = analysis_results['chest']['score']
+    chest_subs = analysis_results['chest']['subscores']
 
-        body_score = analysis_results['body']['score']
-        body_subs = analysis_results['body']['subscores']
+    body_score = analysis_results['body']['score']
+    body_subs = analysis_results['body']['subscores']
 
-        audience_score = analysis_results['audience']['score']
-        audience_subs = analysis_results['audience']['subscores']
-
-    except Exception as e:
-        print("=" * 80, file=sys.stderr)
-        print("🚨 NEW EXCEPTION HANDLER ACTIVE - FULL DIAGNOSTIC MODE", file=sys.stderr)
-        print("=" * 80, file=sys.stderr)
-        print(f"⚠️  Real analysis failed: {e}", file=sys.stderr)
-        print(f"⚠️  Exception type: {type(e).__name__}", file=sys.stderr)
-        print("📋 Full stack trace:", file=sys.stderr)
-        traceback.print_exc(file=sys.stderr)
-        print("=" * 80, file=sys.stderr)
-        print("⚠️  Falling back to deterministic generation", file=sys.stderr)
-
-        # Fallback to deterministic generation if real analysis fails
-        file_hash = hash_file(video_path)
-        seed = int(file_hash[:8], 16)
-        rng = random.Random(seed)
-
-        # Generate pillar scores using FULL 1-5 range (not 2.5-4.8)
-        spirit_score = round(rng.triangular(1.0, 5.0, 3.5), 1)
-        chest_score = round(rng.triangular(1.0, 5.0, 3.5), 1)
-        body_score = round(rng.triangular(1.0, 5.0, 3.5), 1)
-        audience_score = round(rng.triangular(1.0, 5.0, 3.5), 1)
-
-        # Generate subscores
-        def gen_subscores(base, keys):
-            result = {}
-            for k in keys:
-                val = rng.gauss(base, 0.5)
-                val = max(1.0, min(5.0, val))
-                result[k] = round(val, 1)
-            return result
-
-        spirit_subs = gen_subscores(spirit_score, ['emotion_alignment', 'transitions', 'range', 'settling'])
-        chest_subs = gen_subscores(chest_score, ['breath_control', 'vocal_projection', 'pacing', 'articulation'])
-        body_subs = gen_subscores(body_score, ['stage_presence', 'gesture', 'eye_contact', 'movement'])
-        audience_subs = gen_subscores(audience_score, ['engagement', 'connection', 'responsiveness', 'command'])
+    audience_score = analysis_results['audience']['score']
+    audience_subs = analysis_results['audience']['subscores']
 
     # Get video duration
     duration = get_video_duration(video_path)
