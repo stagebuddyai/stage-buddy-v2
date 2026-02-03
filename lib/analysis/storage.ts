@@ -12,11 +12,14 @@ export function generateAnalysisId(): string {
   return crypto.randomUUID();
 }
 
-/** Validate analysis ID format (UUID or timestamp-random) to prevent SQL injection */
+/**
+ * Validate analysis ID format (UUID required for database)
+ * Accepts legacy timestamp format for backward compatibility with existing data
+ */
 export function isValidAnalysisId(id: string): boolean {
-  // Accept UUID format: 8-4-4-4-12 hex digits
+  // Primary format: UUID (8-4-4-4-12 hex digits) - required for database
   const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  // Accept timestamp-random format: digits-alphanumeric
+  // Legacy format: timestamp-random (digits-alphanumeric) - for old filesystem data
   const timestampPattern = /^[0-9]+-[a-z0-9]+$/i;
 
   return uuidPattern.test(id) || timestampPattern.test(id);
