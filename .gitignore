@@ -19,3 +19,6 @@ yarn-error.log*
 # OS files
 .DS_Store
 *.pem
+
+# TypeScript build info
+*.tsbuildinfo

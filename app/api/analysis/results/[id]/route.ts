@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { readResult, readStatus, isValidAnalysisId } from '@/lib/analysis/storage';
 import { getAuthenticatedUser } from '@/lib/analysis/auth-guard';
 
+/**
+ * GET /api/analysis/results/[id]
+ * Returns the complete analysis results for a performance.
+ * Now reads from Supabase database (analysis_results table).
+ */
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -16,6 +21,7 @@ export async function GET(
     return NextResponse.json({ error: 'Invalid analysis ID' }, { status: 400 });
   }
 
+  // Check status first (reads from performances table)
   const status = await readStatus(id);
   if (!status) {
     return NextResponse.json({ error: 'Analysis not found' }, { status: 404 });
@@ -28,6 +34,7 @@ export async function GET(
     );
   }
 
+  // Read result from database (reads from analysis_results table)
   const result = await readResult(id);
   if (!result) {
     return NextResponse.json({ error: 'Results not available' }, { status: 500 });
