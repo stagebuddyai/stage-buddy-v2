@@ -24,9 +24,14 @@ fi
 # Fallback: download static binary
 echo "⚠️  apt-get failed, downloading static binary..."
 TEMP_FILE=$(mktemp)
-curl -L https://github.com/eugeneware/ffmpeg-static/releases/download/b6.0/ffprobe-linux-x64 -o "$TEMP_FILE"
-chmod +x "$TEMP_FILE"
-sudo mv "$TEMP_FILE" /usr/local/bin/ffprobe
-
-echo "✅ ffprobe installed successfully (static binary)"
-ffprobe -version | head -1
+echo "📥 Downloading ffprobe static binary..."
+if curl -L --fail --progress-bar https://github.com/eugeneware/ffmpeg-static/releases/download/b6.0/ffprobe-linux-x64 -o "$TEMP_FILE"; then
+    chmod +x "$TEMP_FILE"
+    sudo mv "$TEMP_FILE" /usr/local/bin/ffprobe
+    echo "✅ ffprobe installed successfully (static binary)"
+    ffprobe -version | head -1
+else
+    echo "❌ Failed to download ffprobe. Please install manually:"
+    echo "   sudo apt-get install -y ffmpeg"
+    exit 1
+fi
