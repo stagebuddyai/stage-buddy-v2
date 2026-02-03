@@ -24,10 +24,21 @@ except ImportError:
 
 try:
     import torch
-    import torchaudio
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
+
+try:
+    import torchaudio
+    # Test for the compatibility issue
+    _ = torchaudio.load  # Just check if basic loading works
+    TORCHAUDIO_AVAILABLE = True
+except (ImportError, AttributeError) as e:
+    # Handle both import errors and compatibility issues
+    TORCHAUDIO_AVAILABLE = False
+    if TORCH_AVAILABLE:
+        logging.warning(f"torchaudio has compatibility issues: {e}")
+        logging.warning("Will use librosa for audio loading instead")
 
 try:
     import librosa
@@ -99,7 +110,7 @@ class VocalEmotionDetector:
         else:
             self.device = device
         
-        if SPEECHBRAIN_AVAILABLE:
+        if SPEECHBRAIN_AVAILABLE and TORCH_AVAILABLE:
             try:
                 self.classifier = foreign_class(
                     source=model_source,
@@ -108,12 +119,18 @@ class VocalEmotionDetector:
                     run_opts={"device": self.device}
                 )
                 logger.info(f"Loaded SpeechBrain emotion model on {self.device}")
+            except (ImportError, AttributeError) as e:
+                # Handle both import errors and compatibility issues (like torchaudio.list_audio_backends)
+                logger.warning(f"Failed to load SpeechBrain model due to dependency issue: {e}")
+                logger.warning("This is usually caused by torchaudio/speechbrain version mismatch")
+                logger.warning("Using prosody-based emotion detection fallback")
+                self.classifier = None
             except Exception as e:
                 logger.warning(f"Failed to load SpeechBrain model: {e}")
                 logger.warning("Using prosody-based fallback")
                 self.classifier = None
         else:
-            logger.warning("SpeechBrain not available - using prosody-based fallback")
+            logger.warning("SpeechBrain or PyTorch not available - using prosody-based fallback")
     
     def detect_emotions_from_file(
         self,
@@ -135,7 +152,7 @@ class VocalEmotionDetector:
         # Load audio - prefer librosa for better compatibility
         if LIBROSA_AVAILABLE:
             audio_array, sr = librosa.load(audio_path, sr=self.sample_rate, mono=True)
-        elif TORCH_AVAILABLE:
+        elif TORCHAUDIO_AVAILABLE and TORCH_AVAILABLE:
             try:
                 waveform, sr = torchaudio.load(audio_path)
                 if sr != self.sample_rate:
@@ -146,11 +163,15 @@ class VocalEmotionDetector:
                     waveform = waveform.mean(dim=0, keepdim=True)
                 audio_array = waveform.squeeze().numpy()
                 sr = self.sample_rate
-            except ImportError:
-                # Fallback to librosa if torchaudio has issues
-                audio_array, sr = librosa.load(audio_path, sr=self.sample_rate, mono=True)
+            except Exception as e:
+                # Fallback to librosa if torchaudio has any issues
+                logger.warning(f"torchaudio loading failed: {e}, using librosa fallback")
+                if LIBROSA_AVAILABLE:
+                    audio_array, sr = librosa.load(audio_path, sr=self.sample_rate, mono=True)
+                else:
+                    raise RuntimeError(f"Audio loading failed: {e}")
         else:
-            raise RuntimeError("Neither torch/torchaudio nor librosa available")
+            raise RuntimeError("Neither torch/torchaudio nor librosa available for audio loading")
         
         duration = len(audio_array) / sr
         
