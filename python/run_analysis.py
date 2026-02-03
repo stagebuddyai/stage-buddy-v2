@@ -710,6 +710,10 @@ def generate_report(video_path: str, analysis_id: str) -> dict:
     NO FALLBACK - If real analysis fails, the error will propagate and crash.
     This ensures we see the actual problem instead of masking it with random scores.
     """
+    print("=" * 80, file=sys.stderr)
+    print("🔥 USING NEW CODE - NO FALLBACK LOGIC - WILL CRASH ON ERROR", file=sys.stderr)
+    print("=" * 80, file=sys.stderr)
+
     # Run real analysis engines - NO TRY/EXCEPT, LET IT FAIL LOUDLY
     analysis_results = run_real_analysis(video_path)
 
