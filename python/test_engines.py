@@ -132,24 +132,40 @@ def test_score_ranges():
 def check_dependencies():
     """Check if required dependencies are installed."""
     print("\n📦 Checking Dependencies...")
-    all_good = True
 
-    deps = [
+    # Core dependencies (required)
+    core_deps = [
         ('numpy', 'numpy'),
         ('opensmile', 'openSMILE'),
+        ('librosa', 'librosa')
+    ]
+
+    # ML dependencies (optional - engines have fallbacks)
+    ml_deps = [
         ('transformers', 'HuggingFace Transformers'),
         ('torch', 'PyTorch')
     ]
 
-    for module, name in deps:
+    core_ok = True
+    for module, name in core_deps:
         try:
             __import__(module)
             print(f"   ✅ {name} installed")
         except ImportError:
-            print(f"   ⚠️  {name} NOT installed (pip install {module})")
-            all_good = False
+            print(f"   ❌ {name} NOT installed (pip install {module})")
+            core_ok = False
 
-    return all_good
+    ml_ok = True
+    for module, name in ml_deps:
+        try:
+            __import__(module)
+            print(f"   ✅ {name} installed")
+        except ImportError:
+            print(f"   ⚠️  {name} NOT installed (pip install {module}) - using fallback")
+            ml_ok = False
+
+    # Return True if core deps are met (ML deps are optional)
+    return core_ok
 
 
 def main():
