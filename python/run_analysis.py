@@ -725,9 +725,14 @@ def generate_report(video_path: str, analysis_id: str) -> dict:
         audience_subs = analysis_results['audience']['subscores']
 
     except Exception as e:
+        print("=" * 80, file=sys.stderr)
+        print("🚨 NEW EXCEPTION HANDLER ACTIVE - FULL DIAGNOSTIC MODE", file=sys.stderr)
+        print("=" * 80, file=sys.stderr)
         print(f"⚠️  Real analysis failed: {e}", file=sys.stderr)
+        print(f"⚠️  Exception type: {type(e).__name__}", file=sys.stderr)
         print("📋 Full stack trace:", file=sys.stderr)
         traceback.print_exc(file=sys.stderr)
+        print("=" * 80, file=sys.stderr)
         print("⚠️  Falling back to deterministic generation", file=sys.stderr)
 
         # Fallback to deterministic generation if real analysis fails
