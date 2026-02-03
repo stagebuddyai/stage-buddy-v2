@@ -655,42 +655,48 @@ def run_real_analysis(video_path: str) -> dict:
 
         print("✅ All engines completed successfully!", file=sys.stderr)
 
-        # Return scores and component scores
+        # Helper function to normalize 0-1 scores to 1-5 scale
+        def normalize_to_5_scale(score: float) -> float:
+            """Convert a 0-1 score to a 1-5 scale."""
+            score = max(0.0, min(1.0, score))
+            return round(1.0 + score * 4.0, 1)
+
+        # Return scores and component scores (all in 1-5 range)
         return {
             'spirit': {
-                'score': spirit_result.overall_score,
+                'score': spirit_result.overall_score,  # Already 1-5
                 'subscores': {
-                    'emotion_alignment': round(spirit_result.emotion_alignment_score * 5, 1),
-                    'transitions': round(spirit_result.emotional_transition_score * 5, 1),
-                    'range': round(spirit_result.emotional_range_score * 5, 1),
-                    'settling': round(spirit_result.settling_score * 5, 1)
+                    'emotion_alignment': normalize_to_5_scale(spirit_result.emotion_alignment_score),
+                    'transitions': normalize_to_5_scale(spirit_result.emotional_transition_score),
+                    'range': normalize_to_5_scale(spirit_result.emotional_range_score),
+                    'settling': normalize_to_5_scale(spirit_result.settling_score)
                 }
             },
             'chest': {
-                'score': chest_result.overall_score,
+                'score': chest_result.overall_score,  # Already 1-5
                 'subscores': {
-                    'breath_control': round(chest_result.breath_control_score * 5, 1),
-                    'vocal_projection': round(chest_result.projection_score * 5, 1),
-                    'pacing': round(chest_result.pacing_score * 5, 1),
-                    'articulation': round(chest_result.vocal_health_score * 5, 1)
+                    'breath_control': normalize_to_5_scale(chest_result.breath_control_score),
+                    'vocal_projection': normalize_to_5_scale(chest_result.projection_score),
+                    'pacing': normalize_to_5_scale(chest_result.pacing_score),
+                    'articulation': normalize_to_5_scale(chest_result.vocal_health_score)
                 }
             },
             'body': {
-                'score': body_result.overall_score,
+                'score': body_result.overall_score,  # Already 1-5
                 'subscores': {
-                    'stage_presence': round(body_result.stage_presence_score * 5, 1),
-                    'gesture': round(body_result.gesture_intentionality_score * 5, 1),
-                    'eye_contact': round(body_result.eye_contact_score * 5, 1),
-                    'movement': round(body_result.physical_vocal_alignment_score * 5, 1)
+                    'stage_presence': normalize_to_5_scale(body_result.stage_presence_score),
+                    'gesture': normalize_to_5_scale(body_result.gesture_intentionality_score),
+                    'eye_contact': normalize_to_5_scale(body_result.eye_contact_score),
+                    'movement': normalize_to_5_scale(body_result.physical_vocal_alignment_score)
                 }
             },
             'audience': {
-                'score': audience_result.overall_score,
+                'score': audience_result.overall_score,  # Already 1-5
                 'subscores': {
-                    'engagement': round(audience_result.engagement_patterns_score * 5, 1),
-                    'connection': round(audience_result.direct_address_score * 5, 1),
-                    'responsiveness': round(audience_result.emotional_invitation_score * 5, 1),
-                    'command': round(audience_result.pacing_score * 5, 1)
+                    'engagement': normalize_to_5_scale(audience_result.engagement_patterns_score),
+                    'connection': normalize_to_5_scale(audience_result.direct_address_score),
+                    'responsiveness': normalize_to_5_scale(audience_result.emotional_invitation_score),
+                    'command': normalize_to_5_scale(audience_result.pacing_score)
                 }
             }
         }
