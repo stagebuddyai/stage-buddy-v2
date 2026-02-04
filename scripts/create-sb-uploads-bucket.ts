@@ -62,7 +62,7 @@ async function createBucket() {
   }
 
   console.log('   ✅ Bucket created successfully');
-  console.log('   ℹ️  Bucket ID:', newBucket?.id || 'sb-uploads');
+  console.log('   ℹ️  Bucket name:', newBucket?.name || 'sb-uploads');
   console.log('   ℹ️  File size limit: 500MB');
   console.log('   ℹ️  Allowed types: video/*');
 

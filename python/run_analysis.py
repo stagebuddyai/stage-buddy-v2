@@ -24,11 +24,8 @@ import tempfile
 import traceback
 from pathlib import Path
 
-# Import analysis engines
+# Import analysis engines - SPIRIT ONLY (Chest/Body/Audience archived for dependency isolation)
 from analysis_modules.spirit_engine import SpiritEngine
-from analysis_modules.chest_engine import ChestEngine
-from analysis_modules.body_engine import BodyEngine
-from analysis_modules.audience_engine import AudienceEngine
 from analysis_modules.shared.data_structures import WordSegment
 
 
@@ -591,15 +588,18 @@ def create_basic_word_segments(duration: float) -> list:
 
 def run_real_analysis(video_path: str) -> dict:
     """
-    Run real analysis using all four engines: Spirit, Chest, Body, Audience.
+    Run real analysis using SPIRIT ENGINE ONLY.
+
+    Chest/Body/Audience engines are archived for dependency isolation.
+    This function will FAIL LOUDLY if Spirit analysis fails - no fallbacks.
 
     Args:
         video_path: Path to video file
 
     Returns:
-        Dictionary with pillar scores and component scores
+        Dictionary with Spirit scores only
     """
-    print("🎭 Running real analysis with all engines...", file=sys.stderr)
+    print("🎭 Running SPIRIT-ONLY analysis (Chest/Body/Audience disabled)...", file=sys.stderr)
 
     # Extract audio from video
     with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp_audio:
@@ -620,42 +620,18 @@ def run_real_analysis(video_path: str) -> dict:
         # Placeholder transcript (can be enhanced with real transcription)
         transcript = "Performance analysis in progress."
 
-        # Initialize engines
+        # Initialize ONLY Spirit Engine
         print("🔥 Initializing Spirit Engine...", file=sys.stderr)
         spirit_engine = SpiritEngine()
 
-        print("💨 Initializing Chest Engine...", file=sys.stderr)
-        chest_engine = ChestEngine()
-
-        print("🎪 Initializing Body Engine...", file=sys.stderr)
-        body_engine = BodyEngine()
-
-        print("👥 Initializing Audience Engine...", file=sys.stderr)
-        audience_engine = AudienceEngine()
-
-        # Run Spirit analysis
+        # Run Spirit analysis - NO TRY/EXCEPT, LET IT FAIL LOUDLY
         print("🔥 Analyzing Spirit (emotion-word alignment)...", file=sys.stderr)
         spirit_result = spirit_engine.analyze(audio_path, transcript, word_segments)
 
-        # Run Chest analysis
-        print("💨 Analyzing Chest (breath, projection, pacing)...", file=sys.stderr)
-        chest_result = chest_engine.analyze(audio_path, word_segments)
+        print("✅ Spirit Engine completed successfully!", file=sys.stderr)
+        print("⚠️  Chest/Body/Audience engines DISABLED - returning Spirit only", file=sys.stderr)
 
-        # Run Body analysis (pass vocal emotions from Spirit)
-        print("🎪 Analyzing Body (presence, gesture proxies)...", file=sys.stderr)
-        body_result = body_engine.analyze(
-            audio_path, word_segments, spirit_result.vocal_emotions
-        )
-
-        # Run Audience analysis (pass vocal emotions from Spirit)
-        print("👥 Analyzing Audience (connection, engagement)...", file=sys.stderr)
-        audience_result = audience_engine.analyze(
-            audio_path, word_segments, spirit_result.vocal_emotions
-        )
-
-        print("✅ All engines completed successfully!", file=sys.stderr)
-
-        # Return scores and component scores
+        # Return ONLY Spirit scores - other pillars are disabled
         return {
             'spirit': {
                 'score': spirit_result.overall_score,
@@ -664,33 +640,6 @@ def run_real_analysis(video_path: str) -> dict:
                     'transitions': round(spirit_result.emotional_transition_score * 5, 1),
                     'range': round(spirit_result.emotional_range_score * 5, 1),
                     'settling': round(spirit_result.settling_score * 5, 1)
-                }
-            },
-            'chest': {
-                'score': chest_result.overall_score,
-                'subscores': {
-                    'breath_control': round(chest_result.breath_control_score * 5, 1),
-                    'vocal_projection': round(chest_result.projection_score * 5, 1),
-                    'pacing': round(chest_result.pacing_score * 5, 1),
-                    'articulation': round(chest_result.vocal_health_score * 5, 1)
-                }
-            },
-            'body': {
-                'score': body_result.overall_score,
-                'subscores': {
-                    'stage_presence': round(body_result.stage_presence_score * 5, 1),
-                    'gesture': round(body_result.gesture_intentionality_score * 5, 1),
-                    'eye_contact': round(body_result.eye_contact_score * 5, 1),
-                    'movement': round(body_result.physical_vocal_alignment_score * 5, 1)
-                }
-            },
-            'audience': {
-                'score': audience_result.overall_score,
-                'subscores': {
-                    'engagement': round(audience_result.engagement_patterns_score * 5, 1),
-                    'connection': round(audience_result.direct_address_score * 5, 1),
-                    'responsiveness': round(audience_result.emotional_invitation_score * 5, 1),
-                    'command': round(audience_result.pacing_score * 5, 1)
                 }
             }
         }
@@ -703,28 +652,24 @@ def run_real_analysis(video_path: str) -> dict:
 
 def generate_report(video_path: str, analysis_id: str) -> dict:
     """
-    Generate a performance analysis report using real analysis engines.
+    Generate a performance analysis report using SPIRIT ENGINE ONLY.
 
-    Runs Spirit, Chest, Body, and Audience engines on the performance.
+    Chest/Body/Audience engines are DISABLED (archived for dependency isolation).
+    These pillars will show 0 score with 'disabled: true' flag.
 
-    NO FALLBACK - If real analysis fails, the error will propagate and crash.
-    This ensures we see the actual problem instead of masking it with random scores.
+    NO FALLBACK - If Spirit analysis fails, the error will propagate and crash.
+    This ensures we see the actual problem instead of masking it with placeholder scores.
     """
-    # Run real analysis engines - NO TRY/EXCEPT, LET IT FAIL LOUDLY
+    # Run Spirit-only analysis - NO TRY/EXCEPT, LET IT FAIL LOUDLY
     analysis_results = run_real_analysis(video_path)
 
-    # Extract scores from real analysis
+    # Extract Spirit scores (the ONLY real analysis)
     spirit_score = analysis_results['spirit']['score']
     spirit_subs = analysis_results['spirit']['subscores']
 
-    chest_score = analysis_results['chest']['score']
-    chest_subs = analysis_results['chest']['subscores']
-
-    body_score = analysis_results['body']['score']
-    body_subs = analysis_results['body']['subscores']
-
-    audience_score = analysis_results['audience']['score']
-    audience_subs = analysis_results['audience']['subscores']
+    # DISABLED pillars - explicit zero scores, no fake computation
+    disabled_score = 0
+    disabled_feedback = "Coming soon - this dimension is temporarily disabled while we stabilize the analysis pipeline."
 
     # Get video duration
     duration = get_video_duration(video_path)
@@ -734,77 +679,74 @@ def generate_report(video_path: str, analysis_id: str) -> dict:
     seed = int(file_hash[:8], 16)
     rng = random.Random(seed)
 
-    # Weighted overall
-    overall_score = round(
-        spirit_score * 0.30 +
-        chest_score * 0.25 +
-        body_score * 0.25 +
-        audience_score * 0.20,
-        1
-    )
+    # Overall score is ONLY Spirit (since others are disabled)
+    # We don't blend in zeros - that would artificially deflate the score
+    overall_score = spirit_score
 
     pillar_scores = {
         'spirit': spirit_score,
-        'chest': chest_score,
-        'body': body_score,
-        'audience': audience_score,
+        'chest': disabled_score,
+        'body': disabled_score,
+        'audience': disabled_score,
     }
 
+    # Only Spirit has real subscores
     all_subscores = {
         'spirit': spirit_subs,
-        'chest': chest_subs,
-        'body': body_subs,
-        'audience': audience_subs,
     }
 
     scores = {
         'overall': overall_score,
-        **pillar_scores,
+        'spirit': spirit_score,
     }
 
-    # Generate key moments (used by feedback generators)
+    # Generate key moments based on Spirit analysis only
     key_moments = generate_key_moments(duration, scores, rng)
 
-    # Build report
+    # Build report with Spirit real + others disabled
     report = {
         'performance_id': analysis_id,
         'overall': {
             'score': overall_score,
             'grade': score_to_display(overall_score),
-            'summary': generate_overall_summary(overall_score, pillar_scores, rng),
+            'summary': generate_spirit_only_summary(spirit_score, spirit_subs, rng),
         },
         'pillars': [
             {
                 'name': 'Spirit',
-                'weight': 0.30,
+                'weight': 1.0,  # 100% weight since it's the only active pillar
                 'score': spirit_score,
                 'subscores': spirit_subs,
                 'feedback': generate_spirit_feedback(spirit_score, spirit_subs, rng, key_moments),
                 'icon': 'flame',
+                'disabled': False,
             },
             {
                 'name': 'Chest',
-                'weight': 0.25,
-                'score': chest_score,
-                'subscores': chest_subs,
-                'feedback': generate_chest_feedback(chest_score, chest_subs, rng, key_moments),
+                'weight': 0.0,
+                'score': disabled_score,
+                'subscores': {},
+                'feedback': disabled_feedback,
                 'icon': 'wind',
+                'disabled': True,
             },
             {
                 'name': 'Body',
-                'weight': 0.25,
-                'score': body_score,
-                'subscores': body_subs,
-                'feedback': generate_body_feedback(body_score, body_subs, rng, key_moments),
+                'weight': 0.0,
+                'score': disabled_score,
+                'subscores': {},
+                'feedback': disabled_feedback,
                 'icon': 'person',
+                'disabled': True,
             },
             {
                 'name': 'Audience',
-                'weight': 0.20,
-                'score': audience_score,
-                'subscores': audience_subs,
-                'feedback': generate_audience_feedback(audience_score, audience_subs, rng, key_moments),
+                'weight': 0.0,
+                'score': disabled_score,
+                'subscores': {},
+                'feedback': disabled_feedback,
                 'icon': 'users',
+                'disabled': True,
             },
         ],
         'timeline': {
@@ -812,10 +754,60 @@ def generate_report(video_path: str, analysis_id: str) -> dict:
             'key_moments': key_moments,
             'engagement_curve': generate_engagement_curve(duration, overall_score, rng),
         },
-        'growth_plan': generate_growth_plan(pillar_scores, all_subscores, rng),
+        'growth_plan': generate_spirit_only_growth_plan(spirit_subs),
     }
 
     return report
+
+
+def generate_spirit_only_summary(score: float, subscores: dict, rng: random.Random) -> str:
+    """Generate overall summary based on Spirit analysis only."""
+    lines = []
+
+    if score >= 4.0:
+        lines.append(
+            "This performance demonstrates strong emotional alignment between delivery and content."
+        )
+    elif score >= 3.0:
+        lines.append(
+            "This performance shows genuine emotional engagement with room for deeper expression."
+        )
+    else:
+        lines.append(
+            "This performance is in its building phase. The emotional foundation is here to develop."
+        )
+
+    lines.append(
+        "Note: This snapshot currently evaluates Spirit (emotional delivery) only. "
+        "Chest, Body, and Audience dimensions are temporarily disabled."
+    )
+
+    return " ".join(lines)
+
+
+def generate_spirit_only_growth_plan(spirit_subscores: dict) -> dict:
+    """Generate growth plan from Spirit subscores only."""
+    subscore_labels = {
+        'emotion_alignment': 'Vocal-text emotional alignment',
+        'transitions': 'Emotional transitions',
+        'range': 'Emotional range and variety',
+        'settling': 'Vocal settling and consistency',
+    }
+
+    # Sort subscores
+    sorted_scores = sorted(
+        [(subscore_labels.get(k, k), v) for k, v in spirit_subscores.items()],
+        key=lambda x: x[1],
+        reverse=True
+    )
+
+    strengths = [s[0] for s in sorted_scores[:2]]
+    focus = [s[0] for s in sorted_scores[-2:]]
+
+    return {
+        'top_strengths': strengths,
+        'focus_areas': focus,
+    }
 
 
 def main():
@@ -847,7 +839,15 @@ def main():
         sys.exit(0)
 
     except Exception as e:
-        print(f"Error generating report: {e}", file=sys.stderr)
+        # HARD FAIL with full diagnostic information
+        print("=" * 60, file=sys.stderr)
+        print("🚨 SPIRIT ENGINE ANALYSIS FAILED - NO FALLBACK", file=sys.stderr)
+        print("=" * 60, file=sys.stderr)
+        print(f"Error: {e}", file=sys.stderr)
+        print("", file=sys.stderr)
+        print("Full stack trace:", file=sys.stderr)
+        traceback.print_exc(file=sys.stderr)
+        print("=" * 60, file=sys.stderr)
         sys.exit(1)
 
 
