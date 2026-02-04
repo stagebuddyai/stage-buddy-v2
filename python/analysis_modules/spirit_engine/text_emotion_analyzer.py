@@ -8,12 +8,24 @@ we can measure emotion-word alignment - the core Spirit metric.
 """
 
 import re
+import os
+import warnings
 from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
 import logging
 
 try:
+    # Suppress the position_ids warning from transformers during model loading
+    # This happens because roberta-base-go_emotions was saved with position_ids
+    # as a buffer, but newer transformers don't expect it. It's harmless.
+    os.environ.setdefault("TRANSFORMERS_NO_ADVISORY_WARNINGS", "1")
+
     from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
+    from transformers import logging as transformers_logging
+
+    # Set transformers logging to only show errors (suppress position_ids INFO)
+    transformers_logging.set_verbosity_error()
+
     import torch
     TRANSFORMERS_AVAILABLE = True
 except ImportError:
@@ -127,14 +139,19 @@ class TextEmotionAnalyzer:
                 device = -1
             elif device == "cuda":
                 device = 0
-            
+
             try:
-                self.classifier = pipeline(
-                    "text-classification",
-                    model=model_name,
-                    top_k=None,  # Return all emotions with scores
-                    device=device
-                )
+                # Suppress warnings during model loading (position_ids mismatch is harmless)
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", message=".*position_ids.*")
+                    warnings.filterwarnings("ignore", category=UserWarning)
+
+                    self.classifier = pipeline(
+                        "text-classification",
+                        model=model_name,
+                        top_k=None,  # Return all emotions with scores
+                        device=device
+                    )
                 logger.info(f"Loaded emotion model: {model_name}")
             except Exception as e:
                 logger.error(f"Failed to load emotion model: {e}")

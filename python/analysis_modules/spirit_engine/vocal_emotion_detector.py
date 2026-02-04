@@ -23,6 +23,33 @@ except ImportError:
 
 try:
     import torchaudio
+
+    # COMPATIBILITY SHIM: Add list_audio_backends if missing (removed in torchaudio 2.1+)
+    # SpeechBrain internally calls this function, but it was deprecated/removed.
+    # We add a stub that returns an empty list to prevent AttributeError.
+    if not hasattr(torchaudio, 'list_audio_backends'):
+        def _list_audio_backends():
+            """Compatibility shim for deprecated torchaudio.list_audio_backends()"""
+            # Return common backends that might be available
+            backends = []
+            try:
+                # Check for sox backend
+                if hasattr(torchaudio, 'sox_io_backend'):
+                    backends.append('sox_io')
+            except Exception:
+                pass
+            try:
+                # Check for soundfile backend
+                if hasattr(torchaudio, 'soundfile_backend'):
+                    backends.append('soundfile')
+            except Exception:
+                pass
+            # Default to sox_io if nothing detected (common on Linux)
+            return backends if backends else ['sox_io']
+
+        torchaudio.list_audio_backends = _list_audio_backends
+        logging.info("Added torchaudio.list_audio_backends compatibility shim")
+
     # Test for the compatibility issue
     _ = torchaudio.load  # Just check if basic loading works
     TORCHAUDIO_AVAILABLE = True
