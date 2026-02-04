@@ -51,8 +51,42 @@ function formatSubscoreLabel(key: string): string {
 export default function PillarCard({ pillar }: PillarCardProps) {
   const [expanded, setExpanded] = useState(false);
 
+  const isDisabled = pillar.disabled === true;
   const weightPercent = Math.round(pillar.weight * 100);
 
+  // Disabled pillar - simplified non-expandable card
+  if (isDisabled) {
+    return (
+      <div className="flex flex-col rounded-lg border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/50 opacity-60">
+        <div className="flex items-center gap-3 p-4">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-200 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-600">
+            {PILLAR_ICONS[pillar.icon] || PILLAR_ICONS.flame}
+          </span>
+          <div className="flex flex-1 flex-col gap-0.5">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-zinc-500 dark:text-zinc-500">
+                {pillar.name}
+              </span>
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                Coming soon
+              </span>
+            </div>
+            {/* Disabled score display */}
+            <div className="flex items-center gap-2">
+              <div className="h-1.5 flex-1 rounded-full bg-zinc-200 dark:bg-zinc-800">
+                <div className="h-1.5 w-0 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+              </div>
+              <span className="min-w-[2rem] text-right text-sm font-medium text-zinc-400 dark:text-zinc-600">
+                —
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Active pillar - full interactive card
   return (
     <div className="flex flex-col rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
       {/* Header */}

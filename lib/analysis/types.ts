@@ -22,6 +22,7 @@ export interface PillarResult {
   subscores: Record<string, number>;
   feedback: string;
   icon: string;
+  disabled?: boolean;  // True if this pillar is temporarily disabled
 }
 
 export interface ReportTimeline {

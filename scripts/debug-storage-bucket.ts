@@ -22,7 +22,7 @@ async function debugBuckets() {
   console.log('');
 
   // Test 1: Check with anon key
-  if (SUPABASE_ANON_KEY) {
+  if (SUPABASE_ANON_KEY && SUPABASE_URL) {
     console.log('1️⃣  Checking with ANON key...');
     const anonClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const { data: anonBuckets, error: anonError } = await anonClient.storage.listBuckets();
@@ -47,7 +47,7 @@ async function debugBuckets() {
   console.log('');
 
   // Test 2: Check with service role key
-  if (SUPABASE_SERVICE_ROLE_KEY) {
+  if (SUPABASE_SERVICE_ROLE_KEY && SUPABASE_URL) {
     console.log('2️⃣  Checking with SERVICE ROLE key...');
     const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const { data: adminBuckets, error: adminError } = await adminClient.storage.listBuckets();
@@ -80,7 +80,7 @@ async function debugBuckets() {
   console.log('');
 
   // Test 3: Try to create bucket if service role key available
-  if (SUPABASE_SERVICE_ROLE_KEY) {
+  if (SUPABASE_SERVICE_ROLE_KEY && SUPABASE_URL) {
     console.log('3️⃣  Attempting to create sb-uploads bucket...');
     const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
