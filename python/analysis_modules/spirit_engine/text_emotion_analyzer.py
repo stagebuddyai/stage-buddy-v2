@@ -8,12 +8,30 @@ we can measure emotion-word alignment - the core Spirit metric.
 """
 
 import re
+import os
+import warnings
 from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
 import logging
 
+# Configure HuggingFace token if available (reduces rate limiting, speeds downloads)
+HF_TOKEN = os.environ.get('HF_TOKEN') or os.environ.get('HUGGINGFACE_TOKEN')
+if HF_TOKEN:
+    os.environ['HF_TOKEN'] = HF_TOKEN
+
 try:
+    # Suppress the position_ids warning from transformers during model loading
+    # This happens because roberta-base-go_emotions was saved with position_ids
+    # as a buffer, but newer transformers don't expect it. It's harmless.
+    os.environ.setdefault("TRANSFORMERS_NO_ADVISORY_WARNINGS", "1")
+    os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")  # Avoid tokenizer warnings
+
     from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
+    from transformers import logging as transformers_logging
+
+    # Set transformers logging to only show errors (suppress position_ids INFO/WARNING)
+    transformers_logging.set_verbosity_error()
+
     import torch
     TRANSFORMERS_AVAILABLE = True
 except ImportError:
@@ -127,14 +145,30 @@ class TextEmotionAnalyzer:
                 device = -1
             elif device == "cuda":
                 device = 0
-            
+
             try:
-                self.classifier = pipeline(
-                    "text-classification",
-                    model=model_name,
-                    top_k=None,  # Return all emotions with scores
-                    device=device
-                )
+                # Suppress warnings during model loading (position_ids mismatch is harmless)
+                # The UNEXPECTED status for roberta.embeddings.position_ids is expected
+                # when loading models saved with older transformers versions
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", message=".*position_ids.*")
+                    warnings.filterwarnings("ignore", message=".*UNEXPECTED.*")
+                    warnings.filterwarnings("ignore", category=UserWarning)
+                    warnings.filterwarnings("ignore", category=FutureWarning)
+
+                    # Build pipeline kwargs
+                    pipeline_kwargs = {
+                        "task": "text-classification",
+                        "model": model_name,
+                        "top_k": None,  # Return all emotions with scores
+                        "device": device,
+                    }
+
+                    # Add HF token if available for authenticated downloads
+                    if HF_TOKEN:
+                        pipeline_kwargs["token"] = HF_TOKEN
+
+                    self.classifier = pipeline(**pipeline_kwargs)
                 logger.info(f"Loaded emotion model: {model_name}")
             except Exception as e:
                 logger.error(f"Failed to load emotion model: {e}")
