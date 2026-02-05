@@ -14,10 +14,20 @@ from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
 import logging
 
-# Configure HuggingFace token if available (reduces rate limiting, speeds downloads)
-HF_TOKEN = os.environ.get('HF_TOKEN') or os.environ.get('HUGGINGFACE_TOKEN')
-if HF_TOKEN:
-    os.environ['HF_TOKEN'] = HF_TOKEN
+def _resolve_hf_token() -> str | None:
+    """Resolve HuggingFace token from environment with validation."""
+    token = os.environ.get('HF_TOKEN') or os.environ.get('HUGGINGFACE_TOKEN')
+    if not token:
+        return None
+    token = token.strip()
+    if not token.startswith('hf_'):
+        logging.warning(
+            "HF_TOKEN does not start with 'hf_' — may not be a valid HuggingFace token."
+        )
+    os.environ['HF_TOKEN'] = token
+    return token
+
+HF_TOKEN = _resolve_hf_token()
 
 try:
     # Suppress the position_ids warning from transformers during model loading
@@ -171,7 +181,20 @@ class TextEmotionAnalyzer:
                     self.classifier = pipeline(**pipeline_kwargs)
                 logger.info(f"Loaded emotion model: {model_name}")
             except Exception as e:
-                logger.error(f"Failed to load emotion model: {e}")
+                err_str = str(e)
+                if '403' in err_str or 'Forbidden' in err_str:
+                    logger.error(
+                        f"Model download returned 403 Forbidden for {model_name}. "
+                        "Your HF_TOKEN may be invalid or lack 'read' permissions. "
+                        "Verify at https://huggingface.co/settings/tokens"
+                    )
+                elif '401' in err_str or 'Unauthorized' in err_str:
+                    logger.error(
+                        f"Model download returned 401 for {model_name}. "
+                        "Set a valid HF_TOKEN in .env.local."
+                    )
+                else:
+                    logger.error(f"Failed to load emotion model: {e}")
                 self.classifier = None
         else:
             self.classifier = None

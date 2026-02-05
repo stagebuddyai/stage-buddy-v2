@@ -48,8 +48,9 @@ export async function createSupabaseServer() {
         set(name: string, value: string, options: Record<string, unknown>) {
           try {
             cookieStore.set({ name, value, ...options });
-          } catch (error) {
-            console.debug('[Supabase Server] Could not set cookie:', error);
+          } catch {
+            // Cookie writes are expected to fail in Server Components (read-only context).
+            // This is normal — auth mutations should use Server Actions instead.
           }
         },
         getAll() {
@@ -80,11 +81,9 @@ export async function createSupabaseServer() {
                 secure: true,
               });
             });
-          } catch (error) {
-            // NOTE: Cookie writes fail in Server Components (Next.js 13+ restriction)
-            // This is expected for read-only operations like getSession() in Server Components
-            // For auth operations (signIn, signOut), use Server Actions from app/actions/auth.ts
-            console.debug('[Supabase Server] Cookie write failed (expected in Server Components):', error);
+          } catch {
+            // Cookie writes are expected to fail in Server Components (read-only context).
+            // This is normal for getSession() calls. Auth mutations use Server Actions.
           }
         },
         remove(name: string, options: Record<string, unknown>) {
@@ -93,8 +92,8 @@ export async function createSupabaseServer() {
               ...options,
               maxAge: 0,
             });
-          } catch (error) {
-            console.debug('[Supabase Server] Could not remove cookie:', error);
+          } catch {
+            // Cookie deletes are expected to fail in Server Components (read-only context).
           }
         },
       },

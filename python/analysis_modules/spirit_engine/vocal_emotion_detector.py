@@ -17,11 +17,27 @@ import warnings
 # that fail at import time. Import it lazily when needed.
 SPEECHBRAIN_AVAILABLE = None  # Will be determined on first use
 
-# Configure HuggingFace token if available (reduces rate limiting, speeds downloads)
-HF_TOKEN = os.environ.get('HF_TOKEN') or os.environ.get('HUGGINGFACE_TOKEN')
-if HF_TOKEN:
-    os.environ['HF_TOKEN'] = HF_TOKEN
+def _resolve_hf_token() -> str | None:
+    """Resolve HuggingFace token from environment with validation."""
+    token = os.environ.get('HF_TOKEN') or os.environ.get('HUGGINGFACE_TOKEN')
+    if not token:
+        logging.warning(
+            "No HF_TOKEN found in environment. Model downloads may be rate-limited. "
+            "Set HF_TOKEN in .env.local for authenticated HuggingFace Hub access."
+        )
+        return None
+    token = token.strip()
+    if not token.startswith('hf_'):
+        logging.warning(
+            "HF_TOKEN does not start with 'hf_' — this may not be a valid "
+            "HuggingFace token. Proceeding anyway."
+        )
+    # Ensure it's available to child processes / other libs that read os.environ
+    os.environ['HF_TOKEN'] = token
     logging.info("HuggingFace token configured for authenticated requests")
+    return token
+
+HF_TOKEN = _resolve_hf_token()
 
 try:
     import torch
@@ -205,7 +221,21 @@ class VocalEmotionDetector:
                 logger.warning("Using prosody-based emotion detection fallback")
                 self.classifier = None
             except Exception as e:
-                logger.warning(f"Failed to load SpeechBrain model: {e}")
+                err_str = str(e)
+                # Surface actionable auth / network errors clearly
+                if '403' in err_str or 'Forbidden' in err_str:
+                    logger.error(
+                        "SpeechBrain model download returned 403 Forbidden. "
+                        "Your HF_TOKEN may be invalid or lack 'read' permissions. "
+                        "Verify at https://huggingface.co/settings/tokens"
+                    )
+                elif '401' in err_str or 'Unauthorized' in err_str:
+                    logger.error(
+                        "SpeechBrain model download returned 401 Unauthorized. "
+                        "Set a valid HF_TOKEN in .env.local."
+                    )
+                else:
+                    logger.warning(f"Failed to load SpeechBrain model: {e}")
                 logger.warning("Using prosody-based fallback")
                 self.classifier = None
         else:
