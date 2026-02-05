@@ -14,18 +14,31 @@ from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
 import logging
 
-# Configure HuggingFace token if available (reduces rate limiting, speeds downloads)
-HF_TOKEN = os.environ.get('HF_TOKEN') or os.environ.get('HUGGINGFACE_TOKEN')
-if HF_TOKEN:
-    os.environ['HF_TOKEN'] = HF_TOKEN
+# Suppress transformer/HuggingFace warnings BEFORE imports
+# These must be set before transformers are imported
+os.environ.setdefault("TRANSFORMERS_NO_ADVISORY_WARNINGS", "1")
+os.environ.setdefault("TRANSFORMERS_VERBOSITY", "error")
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
+
+
+def _resolve_hf_token() -> str | None:
+    """Resolve HuggingFace token from environment with validation."""
+    token = os.environ.get('HF_TOKEN') or os.environ.get('HUGGINGFACE_TOKEN')
+    if not token:
+        return None
+    token = token.strip()
+    if not token.startswith('hf_'):
+        logging.warning(
+            "HF_TOKEN does not start with 'hf_' — may not be a valid HuggingFace token."
+        )
+    os.environ['HF_TOKEN'] = token
+    return token
+
+
+HF_TOKEN = _resolve_hf_token()
 
 try:
-    # Suppress the position_ids warning from transformers during model loading
-    # This happens because roberta-base-go_emotions was saved with position_ids
-    # as a buffer, but newer transformers don't expect it. It's harmless.
-    os.environ.setdefault("TRANSFORMERS_NO_ADVISORY_WARNINGS", "1")
-    os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")  # Avoid tokenizer warnings
-
     from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
     from transformers import logging as transformers_logging
 
@@ -151,10 +164,24 @@ class TextEmotionAnalyzer:
                 # The UNEXPECTED status for roberta.embeddings.position_ids is expected
                 # when loading models saved with older transformers versions
                 with warnings.catch_warnings():
-                    warnings.filterwarnings("ignore", message=".*position_ids.*")
-                    warnings.filterwarnings("ignore", message=".*UNEXPECTED.*")
+                    # General warning categories
                     warnings.filterwarnings("ignore", category=UserWarning)
                     warnings.filterwarnings("ignore", category=FutureWarning)
+                    warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+                    # Specific UNEXPECTED parameter warnings from safetensors/model loading
+                    warnings.filterwarnings("ignore", message=".*UNEXPECTED.*")
+                    warnings.filterwarnings("ignore", message=".*unexpected.*")
+
+                    # Roberta position_ids warning (cosmetic, model works fine)
+                    warnings.filterwarnings("ignore", message=".*position_ids.*")
+                    warnings.filterwarnings("ignore", message=".*roberta.*embeddings.*")
+
+                    # Wav2Vec2 / other model parameter mismatches (harmless)
+                    warnings.filterwarnings("ignore", message=".*wav2vec2.*")
+                    warnings.filterwarnings("ignore", message=".*Wav2Vec2.*")
+                    warnings.filterwarnings("ignore", message=".*encoder\\.layers.*")
+                    warnings.filterwarnings("ignore", message=".*feature_extractor.*")
 
                     # Build pipeline kwargs
                     pipeline_kwargs = {
@@ -171,7 +198,20 @@ class TextEmotionAnalyzer:
                     self.classifier = pipeline(**pipeline_kwargs)
                 logger.info(f"Loaded emotion model: {model_name}")
             except Exception as e:
-                logger.error(f"Failed to load emotion model: {e}")
+                err_str = str(e)
+                if '403' in err_str or 'Forbidden' in err_str:
+                    logger.error(
+                        f"Model download returned 403 Forbidden for {model_name}. "
+                        "Your HF_TOKEN may be invalid or lack 'read' permissions. "
+                        "Verify at https://huggingface.co/settings/tokens"
+                    )
+                elif '401' in err_str or 'Unauthorized' in err_str:
+                    logger.error(
+                        f"Model download returned 401 for {model_name}. "
+                        "Set a valid HF_TOKEN in .env.local."
+                    )
+                else:
+                    logger.error(f"Failed to load emotion model: {e}")
                 self.classifier = None
         else:
             self.classifier = None
