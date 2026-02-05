@@ -8,12 +8,20 @@ emotion-word alignment scoring.
 """
 
 from typing import List, Dict, Any, Optional
+import os
 import numpy as np
 import logging
+import warnings
 
 # DO NOT import speechbrain at module level - it has torchaudio dependencies
 # that fail at import time. Import it lazily when needed.
 SPEECHBRAIN_AVAILABLE = None  # Will be determined on first use
+
+# Configure HuggingFace token if available (reduces rate limiting, speeds downloads)
+HF_TOKEN = os.environ.get('HF_TOKEN') or os.environ.get('HUGGINGFACE_TOKEN')
+if HF_TOKEN:
+    os.environ['HF_TOKEN'] = HF_TOKEN
+    logging.info("HuggingFace token configured for authenticated requests")
 
 try:
     import torch
@@ -26,29 +34,45 @@ try:
 
     # COMPATIBILITY SHIM: Add list_audio_backends if missing (removed in torchaudio 2.1+)
     # SpeechBrain internally calls this function, but it was deprecated/removed.
-    # We add a stub that returns an empty list to prevent AttributeError.
+    # We add a stub that returns appropriate backends based on what's available.
     if not hasattr(torchaudio, 'list_audio_backends'):
         def _list_audio_backends():
             """Compatibility shim for deprecated torchaudio.list_audio_backends()"""
-            # Return common backends that might be available
-            backends = []
+            # In torchaudio 2.0+, backends are handled differently
+            # Return the backends that are typically available
+            available = []
             try:
-                # Check for sox backend
-                if hasattr(torchaudio, 'sox_io_backend'):
-                    backends.append('sox_io')
-            except Exception:
+                # Try to detect soundfile (libsndfile) - most reliable
+                import soundfile
+                available.append('soundfile')
+            except ImportError:
                 pass
             try:
-                # Check for soundfile backend
-                if hasattr(torchaudio, 'soundfile_backend'):
-                    backends.append('soundfile')
-            except Exception:
+                # Try sox_io (Linux)
+                import sox
+                available.append('sox_io')
+            except ImportError:
                 pass
-            # Default to sox_io if nothing detected (common on Linux)
-            return backends if backends else ['sox_io']
+            # Always include ffmpeg as fallback (usually available)
+            available.append('ffmpeg')
+            return available if available else ['ffmpeg']
 
         torchaudio.list_audio_backends = _list_audio_backends
-        logging.info("Added torchaudio.list_audio_backends compatibility shim")
+        logging.debug("Added torchaudio.list_audio_backends compatibility shim")
+
+    # For torchaudio 2.0+, we need to configure the backend properly
+    # The new API uses torchaudio.utils.sox_utils or dispatches automatically
+    try:
+        # Try to use soundfile backend if available (most compatible)
+        import soundfile
+        # In torchaudio 2.0+, backend selection is automatic, but we can hint
+        if hasattr(torchaudio, 'set_audio_backend'):
+            try:
+                torchaudio.set_audio_backend('soundfile')
+            except Exception:
+                pass  # Backend selection is automatic in newer versions
+    except ImportError:
+        pass
 
     # Test for the compatibility issue
     _ = torchaudio.load  # Just check if basic loading works
@@ -133,18 +157,47 @@ class VocalEmotionDetector:
         # Try to load SpeechBrain model (lazy import to avoid import-time errors)
         if TORCH_AVAILABLE:
             try:
-                # Import speechbrain only when needed (deferred import)
-                try:
-                    from speechbrain.inference.interfaces import foreign_class
-                except ImportError:
-                    from speechbrain.pretrained.interfaces import foreign_class
+                # Suppress SpeechBrain and HuggingFace warnings during model loading
+                # The UNEXPECTED warnings for position_ids and wav2vec2 params are harmless
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", category=UserWarning)
+                    warnings.filterwarnings("ignore", category=FutureWarning)
+                    warnings.filterwarnings("ignore", message=".*UNEXPECTED.*")
+                    warnings.filterwarnings("ignore", message=".*position_ids.*")
+                    warnings.filterwarnings("ignore", message=".*audio backend.*")
 
-                self.classifier = foreign_class(
-                    source=model_source,
-                    pymodule_file="custom_interface.py",
-                    classname="CustomEncoderWav2vec2Classifier",
-                    run_opts={"device": self.device}
-                )
+                    # Import speechbrain only when needed (deferred import)
+                    try:
+                        from speechbrain.inference.interfaces import foreign_class
+                    except ImportError:
+                        from speechbrain.pretrained.interfaces import foreign_class
+
+                    # Configure run options with proper settings
+                    run_opts = {
+                        "device": self.device,
+                    }
+
+                    # Add HF token if available for authenticated downloads
+                    if HF_TOKEN:
+                        run_opts["use_auth_token"] = HF_TOKEN
+
+                    self.classifier = foreign_class(
+                        source=model_source,
+                        pymodule_file="custom_interface.py",
+                        classname="CustomEncoderWav2vec2Classifier",
+                        run_opts=run_opts
+                    )
+
+                    # The IEMOCAP model uses 4 emotion categories: neu, hap, sad, ang
+                    # Ensure the encoder is properly configured (if accessible)
+                    if hasattr(self.classifier, 'mods') and hasattr(self.classifier.mods, 'label_encoder'):
+                        encoder = self.classifier.mods.label_encoder
+                        if hasattr(encoder, 'expect_len'):
+                            try:
+                                encoder.expect_len(4)  # 4 emotion categories
+                            except Exception:
+                                pass  # Encoder may already be configured
+
                 logger.info(f"Loaded SpeechBrain emotion model on {self.device}")
             except (ImportError, AttributeError) as e:
                 # Handle import errors and compatibility issues (like torchaudio.list_audio_backends)
