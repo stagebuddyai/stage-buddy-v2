@@ -240,9 +240,10 @@ class SpiritEngine:
                         ideal.emotion
                     )
                     
-                    # Boost score based on intensity match
+                    # Blend with intensity match — reduced from 0.3 to 0.15
+                    # so correct emotion detection keeps most of its credit
                     intensity_match = 1.0 - abs(vocal_seg.intensity - ideal.intensity)
-                    adjusted_score = score * 0.7 + intensity_match * 0.3
+                    adjusted_score = score * 0.85 + intensity_match * 0.15
                     
                     if adjusted_score > best_alignment:
                         best_alignment = adjusted_score
@@ -420,16 +421,19 @@ class SpiritEngine:
         avg_shimmer = np.mean(shimmers) if shimmers else 0.5
         
         # Lower jitter/shimmer = more controlled voice = more settled
-        voice_quality_score = 1.0 - min(1.0, avg_jitter * 10)  # jitter < 0.1 is good
+        # Relaxed from *10 (lab calibration) to *5 (real-world recordings)
+        voice_quality_score = 1.0 - min(1.0, avg_jitter * 5)  # jitter < 0.2 is good
         
         # Voicing consistency
         voicing_probs = [p.voicing_probability for p in prosody_timeline]
         voicing_consistency = np.mean([v > 0.5 for v in voicing_probs])
         
         # Pitch stability (low variance = more settled)
+        # Relaxed from /50 to /120 — expressive speech naturally has high pitch
+        # variance (50-200), and the old threshold penalized dynamic delivery
         pitch_vars = [p.pitch_variance for p in prosody_timeline if p.pitch_variance > 0]
         avg_pitch_var = np.mean(pitch_vars) if pitch_vars else 0
-        pitch_stability = 1.0 - min(1.0, avg_pitch_var / 50)  # var < 50 is good
+        pitch_stability = 1.0 - min(1.0, avg_pitch_var / 120)  # var < 120 is good
         
         # Emotion confidence consistency
         if vocal_emotions:
