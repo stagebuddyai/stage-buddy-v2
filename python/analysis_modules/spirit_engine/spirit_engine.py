@@ -7,8 +7,8 @@ the emotional content of their words. As the POTS guidebook states:
 "Until the spirit of a poem is awakened, the performance will forever remain asleep."
 
 Core Scoring Components:
-1. Emotion-Word Alignment (30%) - Does vocal emotion match text emotion?
-2. Emotional Transition Quality (20%) - Are transitions smooth/intentional?
+1. Emotion-Word Alignment (20%) - Does vocal emotion match text emotion?
+2. Emotional Transition Quality (30%) - Are transitions smooth/intentional?
 3. Emotional Range (35%) - Dynamic range of emotions displayed
 4. Settling Indicator (15%) - Consistency suggesting piece is "settled"
 """
@@ -78,12 +78,12 @@ class SpiritEngine:
             device=device
         )
         
-        # Calibrated weights: 30/20/35/15 (third iteration)
-        # Rebalanced: reduced range dominance (was 45%), increased alignment
-        # and settling to better reward precise delivery and settled performances
+        # Calibrated weights: 20/30/35/15 (fourth iteration)
+        # Alignment reduced (most unreliable — 4-category vocal model),
+        # transitions boosted (most reliable and highest-scoring subscore)
         self.weights = {
-            'emotion_alignment': 0.30,
-            'transition_quality': 0.20,
+            'emotion_alignment': 0.20,
+            'transition_quality': 0.30,
             'emotional_range': 0.35,
             'settling': 0.15
         }
@@ -151,21 +151,30 @@ class SpiritEngine:
         # Step 7: Calculate settling indicator
         settling_score = self._calculate_settling(vocal_emotions, prosody_timeline)
         
-        # Step 8: Calculate overall Spirit score
-        # Calibrated weights: 30/20/35/15 (third iteration)
-        # Rebalanced: reduced range dominance, increased alignment and settling
+        # Step 8: Apply score curve and calculate overall Spirit score
+        # Power curve (^0.6) compensates for ML model limitations:
+        # - IEMOCAP vocal model only outputs 4 categories vs 11 ideal
+        # - Raw subscores are structurally capped at 0.3-0.7 for alignment/settling
+        # - Curve lifts depressed scores while barely touching high ones
+        # - Reduces volatility from model non-determinism between runs
+        curve_exp = 0.6
+        alignment_curved = alignment_result['overall_alignment'] ** curve_exp
+        transition_curved = transition_score ** curve_exp
+        range_curved = range_score ** curve_exp
+        settling_curved = settling_score ** curve_exp
+
         component_scores = {
-            'emotion_alignment': alignment_result['overall_alignment'],
-            'transition_quality': transition_score,
-            'emotional_range': range_score,
-            'settling': settling_score
+            'emotion_alignment': alignment_curved,
+            'transition_quality': transition_curved,
+            'emotional_range': range_curved,
+            'settling': settling_curved
         }
-        
+
         overall_normalized = sum(
             score * self.weights[component]
             for component, score in component_scores.items()
         )
-        
+
         # Convert to 1-5 scale and round all scores to nearest tenth
         overall_score = round(self._normalize_to_5_scale(overall_normalized), 1)
 
@@ -173,10 +182,10 @@ class SpiritEngine:
 
         return SpiritAnalysisResult(
             overall_score=overall_score,
-            emotion_alignment_score=alignment_result['overall_alignment'],
-            emotional_transition_score=transition_score,
-            emotional_range_score=range_score,
-            settling_score=settling_score,
+            emotion_alignment_score=alignment_curved,
+            emotional_transition_score=transition_curved,
+            emotional_range_score=range_curved,
+            settling_score=settling_curved,
             vocal_emotions=vocal_emotions,
             ideal_emotions=ideal_emotions,
             alignment_timeline=alignment_result['timeline'],
@@ -240,10 +249,9 @@ class SpiritEngine:
                         ideal.emotion
                     )
                     
-                    # Blend with intensity match — reduced from 0.3 to 0.15
-                    # so correct emotion detection keeps most of its credit
+                    # Blend emotion match with intensity match
                     intensity_match = 1.0 - abs(vocal_seg.intensity - ideal.intensity)
-                    adjusted_score = score * 0.85 + intensity_match * 0.15
+                    adjusted_score = score * 0.7 + intensity_match * 0.3
                     
                     if adjusted_score > best_alignment:
                         best_alignment = adjusted_score

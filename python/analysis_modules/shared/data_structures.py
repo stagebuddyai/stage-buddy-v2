@@ -260,4 +260,6 @@ def emotions_are_aligned(vocal: EmotionCategory, ideal: EmotionCategory) -> tupl
     if vocal_valence * ideal_valence > 0:  # same sign, both non-zero
         return True, 0.35
 
-    return False, 0.0
+    # Floor for complete mismatches — the vocal model is too unreliable
+    # (4 categories vs 11 ideal) for any segment to confidently score 0.0
+    return False, 0.15
