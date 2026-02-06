@@ -7,10 +7,10 @@ the emotional content of their words. As the POTS guidebook states:
 "Until the spirit of a poem is awakened, the performance will forever remain asleep."
 
 Core Scoring Components:
-1. Emotion-Word Alignment (25%) - Does vocal emotion match text emotion?
+1. Emotion-Word Alignment (30%) - Does vocal emotion match text emotion?
 2. Emotional Transition Quality (20%) - Are transitions smooth/intentional?
-3. Emotional Range (45%) - Dynamic range of emotions displayed
-4. Settling Indicator (10%) - Consistency suggesting piece is "settled"
+3. Emotional Range (35%) - Dynamic range of emotions displayed
+4. Settling Indicator (15%) - Consistency suggesting piece is "settled"
 """
 
 from typing import List, Dict, Any, Optional, Tuple
@@ -78,14 +78,14 @@ class SpiritEngine:
             device=device
         )
         
-        # Calibrated weights: 25/20/45/10 (second iteration)
-        # Heavy emphasis on emotional range as primary quality differentiator
-        # Reduced alignment (25%) and settling (10%) to allow more score spread
+        # Calibrated weights: 30/20/35/15 (third iteration)
+        # Rebalanced: reduced range dominance (was 45%), increased alignment
+        # and settling to better reward precise delivery and settled performances
         self.weights = {
-            'emotion_alignment': 0.25,
+            'emotion_alignment': 0.30,
             'transition_quality': 0.20,
-            'emotional_range': 0.45,
-            'settling': 0.10
+            'emotional_range': 0.35,
+            'settling': 0.15
         }
         
         logger.info("Spirit Engine initialized")
@@ -152,9 +152,8 @@ class SpiritEngine:
         settling_score = self._calculate_settling(vocal_emotions, prosody_timeline)
         
         # Step 8: Calculate overall Spirit score
-        # Calibrated weights: 25/20/45/10 (second iteration)
-        # Heavy emphasis on emotional range as primary quality differentiator
-        # Reduced alignment (25%) and settling (10%) to allow more score spread
+        # Calibrated weights: 30/20/35/15 (third iteration)
+        # Rebalanced: reduced range dominance, increased alignment and settling
         component_scores = {
             'emotion_alignment': alignment_result['overall_alignment'],
             'transition_quality': transition_score,
@@ -318,8 +317,8 @@ class SpiritEngine:
             # Moderate transitions are good, extreme jumps are bad
             # Optimal transition is ~0.3-0.6 in VA space
             if va_distance < 0.1:
-                # Very little change - could be good (stable emotion) or bad (monotone)
-                score = 0.7
+                # Sustained emotion — legitimate artistic choice
+                score = 0.85
             elif va_distance < 0.5:
                 # Moderate transition - ideal
                 score = 1.0
@@ -361,7 +360,7 @@ class SpiritEngine:
         
         # Count unique emotions
         unique_emotions = set(e.emotion for e in vocal_emotions)
-        emotion_variety_score = min(1.0, len(unique_emotions) / 4)  # 4+ emotions = full score
+        emotion_variety_score = min(1.0, len(unique_emotions) / 3)  # 3+ emotions = full score
         
         # Measure intensity range
         intensities = [e.intensity for e in vocal_emotions]
@@ -382,7 +381,7 @@ class SpiritEngine:
         loudness_range = prosody_summary.get('loudness_range', 0)
         
         # Normalize prosody scores
-        pitch_score = min(1.0, pitch_range / 100)  # 100Hz range = good
+        pitch_score = min(1.0, pitch_range / 80)  # 80Hz range = good
         loudness_score = min(1.0, loudness_range / 30)  # 30dB range = good
         
         # Combine scores

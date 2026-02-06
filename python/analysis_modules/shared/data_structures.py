@@ -231,18 +231,25 @@ EMOTION_VA_MAP = {
 
 def emotions_are_aligned(vocal: EmotionCategory, ideal: EmotionCategory) -> tuple[bool, float]:
     """
-    Check if two emotions are aligned (same or adjacent).
+    Check if two emotions are aligned (same, adjacent, or same-valence).
     Returns (is_aligned, alignment_score).
-    
+
     - Exact match: 1.0
     - Adjacent emotion: 0.7
-    - Non-adjacent: 0.0
+    - Same valence sign (both positive or both negative): 0.35
+    - Completely mismatched: 0.0
     """
     if vocal == ideal:
         return True, 1.0
-    
+
     adjacent = EMOTION_ADJACENCY.get(ideal, [])
     if vocal in adjacent:
         return True, 0.7
-    
+
+    # Partial credit: same valence polarity (both positive or both negative)
+    vocal_valence = EMOTION_VA_MAP.get(vocal, (0.0, 0.3))[0]
+    ideal_valence = EMOTION_VA_MAP.get(ideal, (0.0, 0.3))[0]
+    if vocal_valence * ideal_valence > 0:  # same sign, both non-zero
+        return True, 0.35
+
     return False, 0.0
