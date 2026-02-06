@@ -236,6 +236,7 @@ def emotions_are_aligned(vocal: EmotionCategory, ideal: EmotionCategory) -> tupl
 
     - Exact match: 1.0
     - Adjacent emotion: 0.7
+    - NEUTRAL vocal (model uncertainty): 0.4
     - Same valence sign (both positive or both negative): 0.35
     - Completely mismatched: 0.0
     """
@@ -246,10 +247,19 @@ def emotions_are_aligned(vocal: EmotionCategory, ideal: EmotionCategory) -> tupl
     if vocal in adjacent:
         return True, 0.7
 
+    # NEUTRAL is the vocal model's "unsure" output — it should not be treated
+    # as a total mismatch. The IEMOCAP model defaults to neutral for subtle or
+    # ambiguous emotion, which would otherwise score 0.0 against every non-calm
+    # emotion (because NEUTRAL valence=0.0, so same-valence check never fires).
+    if vocal == EmotionCategory.NEUTRAL and ideal != EmotionCategory.NEUTRAL:
+        return True, 0.4
+
     # Partial credit: same valence polarity (both positive or both negative)
     vocal_valence = EMOTION_VA_MAP.get(vocal, (0.0, 0.3))[0]
     ideal_valence = EMOTION_VA_MAP.get(ideal, (0.0, 0.3))[0]
     if vocal_valence * ideal_valence > 0:  # same sign, both non-zero
         return True, 0.35
 
-    return False, 0.0
+    # Floor for complete mismatches — the vocal model is too unreliable
+    # (4 categories vs 11 ideal) for any segment to confidently score 0.0
+    return False, 0.15

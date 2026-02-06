@@ -40,10 +40,10 @@ export async function GET(
     return NextResponse.json({ error: 'Results not available' }, { status: 500 });
   }
 
-  // Return frozen JSON - identical on every request
+  // Allow browser caching but always revalidate with the server
   return NextResponse.json(result, {
     headers: {
-      'Cache-Control': 'public, max-age=31536000, immutable',
+      'Cache-Control': 'private, no-cache',
     },
   });
 }
