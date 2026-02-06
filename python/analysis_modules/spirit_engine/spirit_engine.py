@@ -173,10 +173,10 @@ class SpiritEngine:
 
         return SpiritAnalysisResult(
             overall_score=overall_score,
-            emotion_alignment_score=round(alignment_result['overall_alignment'], 1),
-            emotional_transition_score=round(transition_score, 1),
-            emotional_range_score=round(range_score, 1),
-            settling_score=round(settling_score, 1),
+            emotion_alignment_score=alignment_result['overall_alignment'],
+            emotional_transition_score=transition_score,
+            emotional_range_score=range_score,
+            settling_score=settling_score,
             vocal_emotions=vocal_emotions,
             ideal_emotions=ideal_emotions,
             alignment_timeline=alignment_result['timeline'],

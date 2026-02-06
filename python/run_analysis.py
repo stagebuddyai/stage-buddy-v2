@@ -636,10 +636,10 @@ def run_real_analysis(video_path: str) -> dict:
             'spirit': {
                 'score': spirit_result.overall_score,
                 'subscores': {
-                    'emotion_alignment': round(spirit_result.emotion_alignment_score * 5, 1),
-                    'transitions': round(spirit_result.emotional_transition_score * 5, 1),
-                    'range': round(spirit_result.emotional_range_score * 5, 1),
-                    'settling': round(spirit_result.settling_score * 5, 1)
+                    'emotion_alignment': round(1 + spirit_result.emotion_alignment_score * 4, 1),
+                    'transitions': round(1 + spirit_result.emotional_transition_score * 4, 1),
+                    'range': round(1 + spirit_result.emotional_range_score * 4, 1),
+                    'settling': round(1 + spirit_result.settling_score * 4, 1)
                 }
             }
         }
