@@ -13,14 +13,16 @@ try:
     OPENSMILE_AVAILABLE = True
 except ImportError:
     OPENSMILE_AVAILABLE = False
-    logging.warning("opensmile not installed. Install with: pip install opensmile")
+    # Debug level: optional dependency, fallback is available
+    logging.debug("opensmile not installed - using fallback feature extraction")
 
 try:
     import librosa
     LIBROSA_AVAILABLE = True
 except ImportError:
     LIBROSA_AVAILABLE = False
-    logging.warning("librosa not installed. Install with: pip install librosa")
+    # Debug level: optional dependency, numpy fallback is available
+    logging.debug("librosa not installed - using numpy-based feature extraction")
 
 from ..shared.data_structures import ProsodyFeatures
 
@@ -74,7 +76,7 @@ class OpenSMILEExtractor:
         else:
             self.smile = None
             self.feature_names = []
-            logger.warning("OpenSMILE not available - using fallback extraction")
+            logger.info("OpenSMILE not available - using numpy-based feature extraction")
     
     def extract_features_from_file(self, audio_path: str) -> Dict[str, Any]:
         """
@@ -202,8 +204,8 @@ class OpenSMILEExtractor:
         """
         if not LIBROSA_AVAILABLE:
             raise RuntimeError("Neither opensmile nor librosa available for feature extraction")
-        
-        logger.warning("Using librosa fallback - install opensmile for better accuracy")
+
+        logger.debug("Using librosa for feature extraction")
         
         # Load audio
         y, sr = librosa.load(audio_path, sr=self.sample_rate)
