@@ -19,6 +19,11 @@ from .spirit_engine import (
     analyze_spirit,
 )
 
+from .chest_engine import (
+    ChestEngine,
+    analyze_chest,
+)
+
 __all__ = [
     # Data structures
     'EmotionCategory',
@@ -32,4 +37,7 @@ __all__ = [
     # Spirit Engine
     'SpiritEngine',
     'analyze_spirit',
+    # Chest Engine
+    'ChestEngine',
+    'analyze_chest',
 ]
