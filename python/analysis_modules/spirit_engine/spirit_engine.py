@@ -151,17 +151,16 @@ class SpiritEngine:
         # Step 7: Calculate settling indicator
         settling_score = self._calculate_settling(vocal_emotions, prosody_timeline)
         
-        # Step 8: Apply score curve and calculate overall Spirit score
-        # Power curve (^0.6) compensates for ML model limitations:
+        # Step 8: Apply per-subscore power curves and calculate overall Spirit score
+        # Alignment and settling use a stronger curve (^0.3) because:
         # - IEMOCAP vocal model only outputs 4 categories vs 11 ideal
-        # - Raw subscores are structurally capped at 0.3-0.7 for alignment/settling
-        # - Curve lifts depressed scores while barely touching high ones
-        # - Reduces volatility from model non-determinism between runs
-        curve_exp = 0.6
-        alignment_curved = alignment_result['overall_alignment'] ** curve_exp
-        transition_curved = transition_score ** curve_exp
-        range_curved = range_score ** curve_exp
-        settling_curved = settling_score ** curve_exp
+        # - Raw scores are structurally capped at 0.3-0.7 due to model limitations
+        # - Stronger curve lifts these depressed scores to match their true quality
+        # Range and transitions use moderate curve (^0.6) — already score well
+        alignment_curved = alignment_result['overall_alignment'] ** 0.3
+        settling_curved = settling_score ** 0.3
+        transition_curved = transition_score ** 0.6
+        range_curved = range_score ** 0.6
 
         component_scores = {
             'emotion_alignment': alignment_curved,
@@ -429,32 +428,34 @@ class SpiritEngine:
         avg_shimmer = np.mean(shimmers) if shimmers else 0.5
         
         # Lower jitter/shimmer = more controlled voice = more settled
-        # Relaxed from *10 (lab calibration) to *5 (real-world recordings)
-        voice_quality_score = 1.0 - min(1.0, avg_jitter * 5)  # jitter < 0.2 is good
-        
+        # Relaxed to *3 for real-world recordings (non-studio mics)
+        voice_quality_score = 1.0 - min(1.0, avg_jitter * 3)  # jitter < 0.33 is good
+
         # Voicing consistency
         voicing_probs = [p.voicing_probability for p in prosody_timeline]
         voicing_consistency = np.mean([v > 0.5 for v in voicing_probs])
-        
+
         # Pitch stability (low variance = more settled)
-        # Relaxed from /50 to /120 — expressive speech naturally has high pitch
-        # variance (50-200), and the old threshold penalized dynamic delivery
+        # Relaxed to /250 — expressive spoken word naturally has high pitch
+        # variance (50-200+), penalizing dynamic delivery is counterproductive
         pitch_vars = [p.pitch_variance for p in prosody_timeline if p.pitch_variance > 0]
         avg_pitch_var = np.mean(pitch_vars) if pitch_vars else 0
-        pitch_stability = 1.0 - min(1.0, avg_pitch_var / 120)  # var < 120 is good
-        
+        pitch_stability = 1.0 - min(1.0, avg_pitch_var / 250)  # var < 250 is good
+
         # Emotion confidence consistency
         if vocal_emotions:
             confidence_scores = [e.confidence for e in vocal_emotions]
             avg_confidence = np.mean(confidence_scores)
         else:
             avg_confidence = 0.5
-        
+
+        # Rebalanced weights: reduced voice quality and pitch stability
+        # (noisy mic signals), boosted confidence and voicing (more stable)
         settling_score = (
-            voice_quality_score * 0.3 +
-            voicing_consistency * 0.25 +
-            pitch_stability * 0.25 +
-            avg_confidence * 0.2
+            voice_quality_score * 0.20 +
+            voicing_consistency * 0.30 +
+            pitch_stability * 0.15 +
+            avg_confidence * 0.35
         )
         
         return settling_score
