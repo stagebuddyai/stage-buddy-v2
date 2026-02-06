@@ -13,25 +13,32 @@ import numpy as np
 import logging
 import warnings
 
-# DO NOT import speechbrain at module level - it has torchaudio dependencies
-# that fail at import time. Import it lazily when needed.
-SPEECHBRAIN_AVAILABLE = None  # Will be determined on first use
-
-# Suppress transformer/HuggingFace warnings BEFORE imports
+# Suppress transformer/HuggingFace warnings BEFORE any imports
 # These must be set before transformers/speechbrain are imported
 os.environ.setdefault("TRANSFORMERS_NO_ADVISORY_WARNINGS", "1")
 os.environ.setdefault("TRANSFORMERS_VERBOSITY", "error")
 os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
 
+# Initialize audio backend FIRST - this sets up torchaudio compatibility
+# before any SpeechBrain imports can fail
+from .audio_backend import (
+    initialize_audio_backend,
+    ensure_backend_available,
+    get_working_backend,
+    AudioBackendError,
+)
+
+# Initialize audio backend early (will auto-init on import but we call explicitly)
+_AUDIO_BACKEND = initialize_audio_backend(require_backend=False)
+
 
 def _resolve_hf_token() -> str | None:
     """Resolve HuggingFace token from environment with validation."""
     token = os.environ.get('HF_TOKEN') or os.environ.get('HUGGINGFACE_TOKEN')
     if not token:
-        logging.warning(
-            "No HF_TOKEN found in environment. Model downloads may be rate-limited. "
-            "Set HF_TOKEN in .env.local for authenticated HuggingFace Hub access."
+        logging.debug(
+            "No HF_TOKEN found in environment. Model downloads may be rate-limited."
         )
         return None
     token = token.strip()
@@ -42,101 +49,32 @@ def _resolve_hf_token() -> str | None:
         )
     # Ensure it's available to child processes / other libs that read os.environ
     os.environ['HF_TOKEN'] = token
-    logging.info("HuggingFace token configured for authenticated requests")
+    logging.debug("HuggingFace token configured for authenticated requests")
     return token
 
 
 HF_TOKEN = _resolve_hf_token()
 
+# Check for PyTorch
 try:
     import torch
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
 
+# Check for torchaudio (audio_backend already configured the shim)
 try:
     import torchaudio
-
-    # COMPATIBILITY SHIM: Add list_audio_backends if missing (removed in torchaudio 2.1+)
-    # SpeechBrain internally calls this function, but it was deprecated/removed.
-    # We add a stub that returns appropriate backends based on what's available.
-    if not hasattr(torchaudio, 'list_audio_backends'):
-        def _list_audio_backends():
-            """Compatibility shim for deprecated torchaudio.list_audio_backends()"""
-            # In torchaudio 2.0+, backends are handled differently
-            # Return the backends that are actually available and working
-            available = []
-
-            # Check soundfile (libsndfile) - most reliable cross-platform
-            try:
-                import soundfile as sf
-                # Verify it can actually read audio
-                if hasattr(sf, 'read'):
-                    available.append('soundfile')
-            except ImportError:
-                pass
-
-            # Check librosa - good fallback
-            try:
-                import librosa
-                if hasattr(librosa, 'load'):
-                    available.append('librosa')
-            except ImportError:
-                pass
-
-            # Check scipy.io.wavfile
-            try:
-                from scipy.io import wavfile
-                available.append('scipy')
-            except ImportError:
-                pass
-
-            # Check sox_io (Linux)
-            try:
-                import sox
-                available.append('sox_io')
-            except ImportError:
-                pass
-
-            # ffmpeg is usually available as system tool
-            import shutil
-            if shutil.which('ffmpeg'):
-                available.append('ffmpeg')
-
-            # Return what we found, or default to soundfile (most common)
-            return available if available else ['soundfile']
-
-        torchaudio.list_audio_backends = _list_audio_backends
-        logging.debug("Added torchaudio.list_audio_backends compatibility shim")
-
-    # For torchaudio 2.0+, try to configure a working backend
-    # Priority: soundfile > sox_io > ffmpeg
-    try:
-        import soundfile
-        if hasattr(torchaudio, 'set_audio_backend'):
-            try:
-                torchaudio.set_audio_backend('soundfile')
-                logging.debug("Set torchaudio backend to soundfile")
-            except Exception:
-                pass  # Backend selection is automatic in newer versions
-    except ImportError:
-        pass
-
-    # Test basic loading capability
-    _ = torchaudio.load  # Just check if the function exists
     TORCHAUDIO_AVAILABLE = True
-except (ImportError, AttributeError) as e:
-    # Handle both import errors and compatibility issues
-    TORCHAUDIO_AVAILABLE = False
-    if TORCH_AVAILABLE:
-        logging.warning(f"torchaudio has compatibility issues: {e}")
-        logging.warning("Will use librosa for audio loading instead")
-
-try:
-    import librosa
-    LIBROSA_AVAILABLE = True
 except ImportError:
-    LIBROSA_AVAILABLE = False
+    TORCHAUDIO_AVAILABLE = False
+
+# Check for soundfile (preferred audio loading)
+try:
+    import soundfile as sf
+    SOUNDFILE_AVAILABLE = True
+except ImportError:
+    SOUNDFILE_AVAILABLE = False
 
 from ..shared.data_structures import (
     EmotionCategory, EmotionSegment, ProsodyFeatures
@@ -173,10 +111,11 @@ PROSODY_THRESHOLDS = {
 class VocalEmotionDetector:
     """
     Detects emotions from vocal audio using deep learning models.
-    
+
     Primary method uses SpeechBrain's wav2vec2-based emotion recognition
-    trained on IEMOCAP dataset. Falls back to prosody-based heuristics
-    if the model is unavailable.
+    trained on IEMOCAP dataset.
+
+    Requires a working audio backend (soundfile or scipy) to be available.
     """
     
     def __init__(
@@ -268,9 +207,9 @@ class VocalEmotionDetector:
 
                 logger.info(f"Loaded SpeechBrain emotion model on {self.device}")
             except (ImportError, AttributeError) as e:
-                # Handle import errors and compatibility issues (like torchaudio.list_audio_backends)
-                logger.warning(f"Could not load SpeechBrain: {e}")
-                logger.warning("Using prosody-based emotion detection fallback")
+                # Handle import errors and compatibility issues
+                logger.debug(f"SpeechBrain not available: {e}")
+                logger.info("Using prosody-based emotion detection")
                 self.classifier = None
             except Exception as e:
                 err_str = str(e)
@@ -287,11 +226,11 @@ class VocalEmotionDetector:
                         "Set a valid HF_TOKEN in .env.local."
                     )
                 else:
-                    logger.warning(f"Failed to load SpeechBrain model: {e}")
-                logger.warning("Using prosody-based fallback")
+                    logger.debug(f"SpeechBrain model not loaded: {e}")
+                logger.info("Using prosody-based emotion detection")
                 self.classifier = None
         else:
-            logger.warning("PyTorch not available - using prosody-based fallback")
+            logger.info("PyTorch not available - using prosody-based emotion detection")
             self.classifier = None
     
     def detect_emotions_from_file(
@@ -311,29 +250,11 @@ class VocalEmotionDetector:
         Returns:
             List of EmotionSegment with detected vocal emotions
         """
-        # Load audio - prefer librosa for better compatibility
-        if LIBROSA_AVAILABLE:
-            audio_array, sr = librosa.load(audio_path, sr=self.sample_rate, mono=True)
-        elif TORCHAUDIO_AVAILABLE and TORCH_AVAILABLE:
-            try:
-                waveform, sr = torchaudio.load(audio_path)
-                if sr != self.sample_rate:
-                    resampler = torchaudio.transforms.Resample(sr, self.sample_rate)
-                    waveform = resampler(waveform)
-                # Convert to mono if stereo
-                if waveform.shape[0] > 1:
-                    waveform = waveform.mean(dim=0, keepdim=True)
-                audio_array = waveform.squeeze().numpy()
-                sr = self.sample_rate
-            except Exception as e:
-                # Fallback to librosa if torchaudio has any issues
-                logger.warning(f"torchaudio loading failed: {e}, using librosa fallback")
-                if LIBROSA_AVAILABLE:
-                    audio_array, sr = librosa.load(audio_path, sr=self.sample_rate, mono=True)
-                else:
-                    raise RuntimeError(f"Audio loading failed: {e}")
-        else:
-            raise RuntimeError("Neither torch/torchaudio nor librosa available for audio loading")
+        # Ensure audio backend is available
+        ensure_backend_available()
+
+        # Load audio using soundfile (verified working backend)
+        audio_array, sr = self._load_audio(audio_path)
         
         duration = len(audio_array) / sr
         
@@ -371,7 +292,74 @@ class VocalEmotionDetector:
             current_time += step
         
         return emotions
-    
+
+    def _load_audio(self, audio_path: str) -> tuple[np.ndarray, int]:
+        """
+        Load audio file using the verified audio backend.
+
+        Uses soundfile for reliable cross-platform audio loading.
+        Resamples to target sample rate and converts to mono if needed.
+
+        Args:
+            audio_path: Path to audio file
+
+        Returns:
+            Tuple of (audio_array, sample_rate)
+
+        Raises:
+            AudioBackendError: If no working audio backend is available
+            RuntimeError: If audio file cannot be loaded
+        """
+        if not SOUNDFILE_AVAILABLE:
+            raise AudioBackendError(
+                "soundfile is required for audio loading. "
+                "Install with: pip install soundfile"
+            )
+
+        try:
+            # Load audio with soundfile
+            audio_array, sr = sf.read(audio_path, dtype='float32')
+
+            # Convert to mono if stereo
+            if len(audio_array.shape) > 1:
+                audio_array = np.mean(audio_array, axis=1)
+
+            # Resample if needed
+            if sr != self.sample_rate:
+                audio_array = self._resample(audio_array, sr, self.sample_rate)
+                sr = self.sample_rate
+
+            return audio_array, sr
+
+        except Exception as e:
+            raise RuntimeError(f"Failed to load audio file '{audio_path}': {e}")
+
+    def _resample(
+        self,
+        audio: np.ndarray,
+        orig_sr: int,
+        target_sr: int
+    ) -> np.ndarray:
+        """
+        Resample audio to target sample rate using linear interpolation.
+
+        This is a simple resampler for when scipy/librosa aren't available.
+        For production use, consider using scipy.signal.resample.
+        """
+        if orig_sr == target_sr:
+            return audio
+
+        # Calculate new length
+        duration = len(audio) / orig_sr
+        new_length = int(duration * target_sr)
+
+        # Use numpy linear interpolation
+        old_indices = np.linspace(0, len(audio) - 1, len(audio))
+        new_indices = np.linspace(0, len(audio) - 1, new_length)
+        resampled = np.interp(new_indices, old_indices, audio)
+
+        return resampled.astype(np.float32)
+
     def _detect_segment_emotion(
         self,
         audio_segment: np.ndarray,
@@ -418,7 +406,7 @@ class VocalEmotionDetector:
             }
             
         except Exception as e:
-            logger.warning(f"SpeechBrain inference failed: {e}, using prosody fallback")
+            logger.debug(f"SpeechBrain inference failed: {e}")
             return self._detect_with_prosody(audio_segment, sample_rate)
     
     def _detect_with_prosody(
@@ -427,64 +415,110 @@ class VocalEmotionDetector:
         sample_rate: int
     ) -> Dict[str, Any]:
         """
-        Fallback emotion detection using prosodic features.
-        
-        Maps prosody patterns to emotions using established research:
+        Emotion detection using prosodic features (numpy-based).
+
+        Uses basic signal processing to extract pitch and loudness,
+        then maps patterns to emotions using established research:
         - High pitch + high variance = excited/happy
         - Low pitch + low variance = sad/neutral
         - High loudness variance = dynamic/emotional
-        - Fast speech = excited/angry
-        - Slow speech = sad/calm
         """
-        if not LIBROSA_AVAILABLE:
-            return self._default_emotion()
-        
-        # Extract basic prosody
         try:
-            # Pitch
-            f0, _, _ = librosa.pyin(
-                audio_segment,
-                fmin=librosa.note_to_hz('C2'),
-                fmax=librosa.note_to_hz('C7'),
-                sr=sample_rate
-            )
-            f0_clean = f0[~np.isnan(f0)] if f0 is not None else np.array([])
-            
-            # Loudness
-            rms = librosa.feature.rms(y=audio_segment)[0]
-            loudness_db = librosa.amplitude_to_db(rms, ref=np.max)
-            
-            # Speech rate estimate (using onset detection as proxy)
-            onset_frames = librosa.onset.onset_detect(y=audio_segment, sr=sample_rate)
+            # Extract pitch using autocorrelation (numpy-based)
+            pitch_estimates = self._estimate_pitch_autocorr(audio_segment, sample_rate)
+            pitch_mean = np.mean(pitch_estimates) if len(pitch_estimates) > 0 else 150.0
+            pitch_var = np.var(pitch_estimates) if len(pitch_estimates) > 1 else 0.0
+
+            # Extract loudness (RMS energy)
+            frame_length = int(sample_rate * 0.025)  # 25ms frames
+            hop_length = int(sample_rate * 0.010)    # 10ms hop
+            rms_values = self._compute_rms(audio_segment, frame_length, hop_length)
+            loudness_db = 20 * np.log10(rms_values + 1e-10)
+            loudness_var = np.var(loudness_db) if len(loudness_db) > 1 else 0.0
+
+            # Estimate speech rate from zero crossings
             duration = len(audio_segment) / sample_rate
-            onset_rate = len(onset_frames) / duration if duration > 0 else 0
-            
+            zero_crossings = np.sum(np.abs(np.diff(np.signbit(audio_segment))))
+            speech_rate = zero_crossings / duration / 100 if duration > 0 else 3.0
+
         except Exception as e:
-            logger.warning(f"Prosody extraction failed: {e}")
+            logger.debug(f"Prosody extraction failed: {e}")
             return self._default_emotion()
-        
-        # Calculate features
-        pitch_mean = np.mean(f0_clean) if len(f0_clean) > 0 else 150.0
-        pitch_var = np.var(f0_clean) if len(f0_clean) > 1 else 0.0
-        loudness_var = np.var(loudness_db) if len(loudness_db) > 1 else 0.0
-        
+
         # Map to emotion using heuristics
         emotion, valence, arousal = self._prosody_to_emotion(
-            pitch_mean, pitch_var, loudness_var, onset_rate
+            pitch_mean, pitch_var, loudness_var, speech_rate
         )
-        
-        # Confidence based on signal quality
-        voiced_ratio = len(f0_clean) / len(f0) if len(f0) > 0 else 0
-        confidence = min(0.7, 0.3 + voiced_ratio * 0.5)  # Cap at 0.7 for heuristic method
-        
+
+        # Confidence based on signal energy
+        signal_energy = np.mean(audio_segment ** 2)
+        confidence = min(0.6, 0.3 + signal_energy * 10)  # Cap at 0.6 for heuristic method
+
         return {
             'emotion': emotion,
-            'intensity': arousal,  # Use arousal as intensity
+            'intensity': arousal,
             'valence': valence,
             'arousal': arousal,
             'confidence': confidence,
             'raw_label': 'prosody_inferred'
         }
+
+    def _estimate_pitch_autocorr(
+        self,
+        audio: np.ndarray,
+        sample_rate: int,
+        fmin: float = 75.0,
+        fmax: float = 600.0
+    ) -> np.ndarray:
+        """
+        Estimate pitch using autocorrelation method (numpy-based).
+
+        Args:
+            audio: Audio signal
+            sample_rate: Sample rate in Hz
+            fmin: Minimum frequency to consider
+            fmax: Maximum frequency to consider
+
+        Returns:
+            Array of pitch estimates in Hz
+        """
+        frame_length = int(sample_rate * 0.05)  # 50ms frames
+        hop_length = int(sample_rate * 0.025)   # 25ms hop
+        min_lag = int(sample_rate / fmax)
+        max_lag = int(sample_rate / fmin)
+
+        pitches = []
+        for i in range(0, len(audio) - frame_length, hop_length):
+            frame = audio[i:i + frame_length]
+
+            # Compute autocorrelation
+            autocorr = np.correlate(frame, frame, mode='full')
+            autocorr = autocorr[len(autocorr) // 2:]
+
+            # Find peak in valid lag range
+            if max_lag < len(autocorr):
+                search_region = autocorr[min_lag:max_lag]
+                if len(search_region) > 0 and np.max(search_region) > 0.1 * autocorr[0]:
+                    peak_lag = np.argmax(search_region) + min_lag
+                    pitch = sample_rate / peak_lag
+                    if fmin <= pitch <= fmax:
+                        pitches.append(pitch)
+
+        return np.array(pitches)
+
+    def _compute_rms(
+        self,
+        audio: np.ndarray,
+        frame_length: int,
+        hop_length: int
+    ) -> np.ndarray:
+        """Compute RMS energy for each frame."""
+        rms_values = []
+        for i in range(0, len(audio) - frame_length, hop_length):
+            frame = audio[i:i + frame_length]
+            rms = np.sqrt(np.mean(frame ** 2))
+            rms_values.append(rms)
+        return np.array(rms_values) if rms_values else np.array([0.0])
     
     def _prosody_to_emotion(
         self,

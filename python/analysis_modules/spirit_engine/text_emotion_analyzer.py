@@ -49,7 +49,8 @@ try:
     TRANSFORMERS_AVAILABLE = True
 except ImportError:
     TRANSFORMERS_AVAILABLE = False
-    logging.warning("transformers not installed. Install with: pip install transformers torch")
+    # Debug level: optional dependency, rule-based fallback is available
+    logging.debug("transformers not installed - using rule-based emotion analysis")
 
 from ..shared.data_structures import EmotionCategory, EmotionSegment, WordSegment
 
@@ -215,7 +216,7 @@ class TextEmotionAnalyzer:
                 self.classifier = None
         else:
             self.classifier = None
-            logger.warning("Transformers not available - using rule-based fallback")
+            logger.info("Transformers not available - using rule-based emotion analysis")
     
     def analyze_text(self, text: str) -> List[Dict[str, Any]]:
         """
