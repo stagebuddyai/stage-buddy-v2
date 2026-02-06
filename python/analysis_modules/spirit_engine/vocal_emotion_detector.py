@@ -172,6 +172,14 @@ class VocalEmotionDetector:
                     warnings.filterwarnings("ignore", message=".*audio backend.*")
                     warnings.filterwarnings("ignore", message=".*torchaudio.*")
 
+                    # Suppress the SpeechBrain torch_audio_backend logger BEFORE
+                    # importing speechbrain. SpeechBrain's check_torchaudio_backend()
+                    # uses logging.warning() (not warnings.warn()), so the warnings
+                    # filter above cannot catch it. We must silence the logger directly.
+                    logging.getLogger("speechbrain.utils.torch_audio_backend").setLevel(
+                        logging.ERROR
+                    )
+
                     # Import speechbrain only when needed (deferred import)
                     try:
                         from speechbrain.inference.interfaces import foreign_class

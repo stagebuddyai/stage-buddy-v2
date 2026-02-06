@@ -83,10 +83,14 @@ def _test_scipy_backend() -> bool:
 
 def _configure_torchaudio_shim():
     """
-    Add compatibility shim for torchaudio.list_audio_backends if missing.
+    Patch torchaudio.list_audio_backends to return verified working backends.
 
-    This must be called before importing SpeechBrain, as SpeechBrain
-    internally calls this function which was removed in torchaudio 2.1+.
+    This must be called before importing SpeechBrain, as SpeechBrain's
+    check_torchaudio_backend() calls torchaudio.list_audio_backends() and
+    logs a warning if the result is empty. On torchaudio 2.1+ the function
+    exists but may return [] when no native backend (ffmpeg/sox) is
+    installed, even though soundfile works fine. We unconditionally replace
+    it so SpeechBrain sees a non-empty list and skips its warning.
     """
     try:
         import torchaudio
@@ -94,13 +98,9 @@ def _configure_torchaudio_shim():
         # torchaudio not installed - will be handled elsewhere
         return
 
-    if hasattr(torchaudio, 'list_audio_backends'):
-        # Already exists, nothing to do
-        return
-
     # Create shim that returns verified working backends
     def _list_audio_backends():
-        """Compatibility shim returning only verified working backends."""
+        """Return only verified working backends."""
         backends = []
 
         # Only include backends we've actually tested
@@ -123,7 +123,7 @@ def _configure_torchaudio_shim():
         return backends if backends else ['soundfile']
 
     torchaudio.list_audio_backends = _list_audio_backends
-    logger.debug("Installed torchaudio.list_audio_backends compatibility shim")
+    logger.debug("Patched torchaudio.list_audio_backends to return verified backends")
 
 
 def _configure_torchaudio_backend():
