@@ -560,30 +560,81 @@ def extract_audio_from_video(video_path: str, output_audio_path: str) -> bool:
         return False
 
 
-def create_basic_word_segments(duration: float) -> list:
+def create_basic_word_segments(duration: float, prosody_timeline=None) -> list:
     """
-    Create basic word segments for analysis when transcription is unavailable.
-    These are placeholders that divide the performance into ~1-second segments.
+    Create word segments for analysis when transcription is unavailable.
+
+    Uses prosody data to detect natural pauses (voicing drops) when available.
+    Falls back to synthetic pauses every ~5-7 seconds otherwise. Segments
+    within a phrase are 0.8s words with 0.1s micro-gaps. Phrase boundaries
+    get a 0.5s pause so the Chest Engine's phrase detector (gap > 0.3s) can
+    find them.
 
     Args:
         duration: Duration of audio in seconds
+        prosody_timeline: Optional list of ProsodyFeatures for voicing-based pause detection
 
     Returns:
-        List of WordSegment objects
+        List of WordSegment objects with realistic phrase boundaries
     """
+    # Detect natural pause positions from voicing probability
+    pause_times = set()
+
+    if prosody_timeline and len(prosody_timeline) > 20:
+        # Find stretches where voicing drops below 0.3 for > 0.3s
+        in_silence = False
+        silence_start = 0.0
+        for pf in prosody_timeline:
+            if pf.voicing_probability < 0.3:
+                if not in_silence:
+                    in_silence = True
+                    silence_start = pf.timestamp
+            else:
+                if in_silence and (pf.timestamp - silence_start) > 0.3:
+                    # Natural pause detected — mark the midpoint
+                    pause_times.add(round((silence_start + pf.timestamp) / 2, 2))
+                in_silence = False
+
+    # If prosody gave too few pauses, supplement with evenly-spaced ones
+    # Target: one phrase boundary roughly every 5-7 seconds
+    if len(pause_times) < max(2, duration / 10):
+        phrase_len = 6.0  # ~6 seconds per phrase
+        t = phrase_len
+        while t < duration - 2.0:
+            # Only add if no prosody-based pause is already nearby (±2s)
+            if not any(abs(t - pt) < 2.0 for pt in pause_times):
+                pause_times.add(round(t, 2))
+            t += phrase_len
+
+    sorted_pauses = sorted(pause_times)
+
+    # Build segments: 0.35s words with 0.05s micro-gaps inside phrases
+    # (~2.5 words/sec, matching natural spoken English at 150 wpm),
+    # 0.5s silence at phrase boundaries
     segments = []
     current_time = 0.0
-    segment_duration = 1.0
+    word_duration = 0.35
+    micro_gap = 0.05
+    phrase_gap = 0.5
 
-    while current_time < duration:
-        end_time = min(current_time + segment_duration, duration)
+    while current_time < duration - 0.1:
+        end_time = min(current_time + word_duration, duration)
         segments.append(WordSegment(
             word=f"segment_{len(segments)}",
             start_time=current_time,
             end_time=end_time,
             confidence=1.0
         ))
-        current_time = end_time
+
+        next_start = end_time + micro_gap  # default: tiny gap between words
+
+        # Check if a phrase boundary falls in the next stretch
+        for pt in sorted_pauses:
+            if end_time <= pt <= end_time + word_duration + phrase_gap:
+                next_start = pt + phrase_gap / 2  # jump past the pause
+                break
+
+        current_time = next_start
 
     return segments
 
@@ -616,10 +667,6 @@ def run_real_analysis(video_path: str) -> dict:
         # Get duration
         duration = get_video_duration(video_path)
 
-        # Create basic word segments (placeholder until transcription is added)
-        print("📝 Creating word segments...", file=sys.stderr)
-        word_segments = create_basic_word_segments(duration)
-
         # Placeholder transcript (can be enhanced with real transcription)
         transcript = "Performance analysis in progress."
 
@@ -633,6 +680,11 @@ def run_real_analysis(video_path: str) -> dict:
         prosody_timeline = prosody_result['prosody_timeline']
         prosody_summary = prosody_extractor.get_summary_statistics(prosody_timeline)
         print(f"✅ Prosody extraction complete ({len(prosody_timeline)} frames)", file=sys.stderr)
+
+        # Create word segments using prosody-detected pauses for natural phrases
+        print("📝 Creating word segments (prosody-guided phrase detection)...", file=sys.stderr)
+        word_segments = create_basic_word_segments(duration, prosody_timeline)
+        print(f"📝 Generated {len(word_segments)} word segments", file=sys.stderr)
 
         # Initialize engines
         print("🔥 Initializing Spirit Engine...", file=sys.stderr)

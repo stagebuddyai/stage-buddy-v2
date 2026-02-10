@@ -142,18 +142,30 @@ class ChestEngine:
         # Compute speech rate from word segments
         speech_rate_stats = self._compute_speech_rate(phrases)
 
-        # Calculate component scores
+        # Calculate raw component scores (0-1)
         breath_control_score = self._calculate_breath_control(phrases)
         projection_score = self._calculate_projection(prosody_summary, prosody_timeline)
         pacing_score = self._calculate_pacing(speech_rate_stats, prosody_timeline)
         vocal_health_score = self._calculate_vocal_health(prosody_timeline)
 
-        # Calculate overall Chest score
+        # Apply per-subscore power curves to lift compressed scores.
+        # Same strategy as Spirit Engine (alignment^0.3, settling^0.3,
+        # transition^0.6, range^0.6) adapted for Chest's signal profile:
+        #   - vocal_health^0.5  : strong lift — most structurally depressed
+        #   - breath_control^0.7: moderate lift — sensitive to placeholder data
+        #   - pacing^0.7        : moderate lift — sensitive to placeholder data
+        #   - projection^0.8    : light lift — already scores well from OpenSMILE
+        breath_control_curved = breath_control_score ** 0.7 if breath_control_score > 0 else 0.0
+        projection_curved = projection_score ** 0.8 if projection_score > 0 else 0.0
+        pacing_curved = pacing_score ** 0.7 if pacing_score > 0 else 0.0
+        vocal_health_curved = vocal_health_score ** 0.5 if vocal_health_score > 0 else 0.0
+
+        # Calculate overall Chest score using curved values
         component_scores = {
-            'breath_control': breath_control_score,
-            'projection': projection_score,
-            'pacing': pacing_score,
-            'vocal_health': vocal_health_score
+            'breath_control': breath_control_curved,
+            'projection': projection_curved,
+            'pacing': pacing_curved,
+            'vocal_health': vocal_health_curved
         }
 
         overall_normalized = sum(
@@ -173,10 +185,10 @@ class ChestEngine:
 
         return ChestAnalysisResult(
             overall_score=overall_score,
-            breath_control_score=breath_control_score,
-            projection_score=projection_score,
-            pacing_score=pacing_score,
-            vocal_health_score=vocal_health_score,
+            breath_control_score=breath_control_curved,
+            projection_score=projection_curved,
+            pacing_score=pacing_curved,
+            vocal_health_score=vocal_health_curved,
             avg_phrase_length=float(np.mean(phrase_lengths)) if phrase_lengths else 0.0,
             phrase_length_variance=float(np.std(phrase_lengths)) if phrase_lengths else 0.0,
             avg_loudness=prosody_summary.get('loudness_mean', 0.0),
@@ -400,26 +412,39 @@ class ChestEngine:
         Evaluates:
         - Jitter (pitch perturbation - lower is healthier)
         - Shimmer (amplitude perturbation - lower is healthier)
-        - Voicing consistency (higher is better)
+        - Voicing consistency (higher is better, measured only over voiced frames)
+
+        Calibration notes (v2 — 2026-02-06):
+        - Shimmer multiplier reduced from *2 to *0.8. openSMILE eGeMAPSv02
+          shimmerLocaldB outputs 0.3-0.8 for normal speech; *2 zeroed out
+          all real recordings.
+        - Jitter multiplier reduced from *10 to *5. Normal jitter on
+          non-studio recordings is 0.02-0.08; *10 penalized healthy voices.
+        - Voicing now filtered to frames with voicing_probability > 0.3,
+          avoiding dilution from silence/pause frames.
         """
         jitters = [p.jitter for p in prosody_timeline if p.jitter > 0]
         shimmers = [p.shimmer for p in prosody_timeline if p.shimmer > 0]
-        voicing_probs = [p.voicing_probability for p in prosody_timeline]
+        # Only count voiced frames — silence frames dilute the average
+        voiced_probs = [p.voicing_probability for p in prosody_timeline
+                        if p.voicing_probability > 0.3]
 
         if not jitters or not shimmers:
             return 0.5
 
         avg_jitter = np.mean(jitters)
         avg_shimmer = np.mean(shimmers)
-        avg_voicing = np.mean(voicing_probs)
+        avg_voicing = np.mean(voiced_probs) if voiced_probs else 0.5
 
-        # Jitter score: healthy voice has jitter < 1%
-        jitter_score = 1.0 - min(1.0, avg_jitter * 10)
+        # Jitter score: calibrated for real-world recordings (not clinical studio)
+        # Normal jitter 0.02-0.08 → scores 0.90-0.60
+        jitter_score = 1.0 - min(1.0, avg_jitter * 5)
 
-        # Shimmer score: healthy voice has shimmer < 5%
-        shimmer_score = 1.0 - min(1.0, avg_shimmer * 2)
+        # Shimmer score: calibrated for openSMILE dB-scale output
+        # Normal shimmer 0.3-0.8 → scores 0.76-0.36
+        shimmer_score = 1.0 - min(1.0, avg_shimmer * 0.8)
 
-        # Voicing score: consistent voicing is good
+        # Voicing score: measured over voiced frames only
         voicing_score = avg_voicing
 
         return (jitter_score * 0.35 + shimmer_score * 0.35 + voicing_score * 0.30)
