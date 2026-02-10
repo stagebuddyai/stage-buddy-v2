@@ -46,3 +46,5 @@ wheels/
 *.egg
 MANIFEST
 *.pyc
+.venv/
+venv/
