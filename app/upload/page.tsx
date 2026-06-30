@@ -62,7 +62,7 @@ export default async function UploadPage() {
 
           {/* Supported formats */}
           <p className="text-xs text-zinc-500 dark:text-zinc-500">
-            Supported formats: MP4, WebM, MOV, AVI, MKV. Maximum file size: 500 MB.
+            Supported formats: MP4, WebM, MOV, AVI, MKV. Maximum file size: 750 MB.
           </p>
         </section>
       </main>
