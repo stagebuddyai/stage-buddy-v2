@@ -921,7 +921,7 @@ def generate_spirit_chest_growth_plan(spirit_subscores: dict, chest_subscores: d
 def download_file_from_url(signed_url: str, output_path: str, timeout: int = 900) -> None:
     """
     Stream a file from a Supabase signed URL directly to disk in 1 MB chunks.
-    Never loads the full file into memory.
+    Uses stdlib urllib — no external dependencies required.
 
     Args:
         signed_url: Supabase signed URL (expires in 2 hours)
@@ -931,31 +931,36 @@ def download_file_from_url(signed_url: str, output_path: str, timeout: int = 900
     Raises:
         RuntimeError on download failure or timeout
     """
-    import requests
+    import urllib.request
+    import urllib.error
+    import socket
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     print(f"[Download] Streaming from Supabase → {output_path}", file=sys.stderr)
 
     try:
-        response = requests.get(signed_url, timeout=timeout, stream=True)
-        response.raise_for_status()
-
-        total_bytes = 0
-        chunk_size = 1024 * 1024  # 1 MB
-        with open(output_path, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=chunk_size):
-                if chunk:
+        req = urllib.request.Request(signed_url)
+        with urllib.request.urlopen(req, timeout=timeout) as response:
+            total_bytes = 0
+            chunk_size = 1024 * 1024  # 1 MB
+            with open(output_path, 'wb') as f:
+                while True:
+                    chunk = response.read(chunk_size)
+                    if not chunk:
+                        break
                     f.write(chunk)
                     total_bytes += len(chunk)
-                    if total_bytes % (50 * 1024 * 1024) == 0:  # log every 50 MB
+                    if total_bytes % (50 * 1024 * 1024) < chunk_size:  # log every 50 MB
                         print(f"[Download] {total_bytes / 1024 / 1024:.0f} MB downloaded...", file=sys.stderr)
 
         print(f"[Download] Complete — {total_bytes / 1024 / 1024:.1f} MB saved to {output_path}", file=sys.stderr)
 
-    except requests.exceptions.Timeout:
+    except socket.timeout:
         raise RuntimeError(f"Download timed out after {timeout}s — check Supabase network speed")
-    except requests.exceptions.RequestException as e:
-        raise RuntimeError(f"Download failed: {e}")
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f"Download failed (HTTP {e.code}): {e.reason}")
+    except urllib.error.URLError as e:
+        raise RuntimeError(f"Download failed: {e.reason}")
 
 
 def write_progress(output_path: str, current_step: str) -> None:
