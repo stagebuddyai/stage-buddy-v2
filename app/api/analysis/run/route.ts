@@ -62,26 +62,24 @@ export async function POST(req: NextRequest) {
   const ext = video_extension || 'mp4';
   const videoFile = path.join(tempUploadDir, `video.${ext}`);
 
-  console.log('[run/route] Downloading from Supabase Storage:', storage_path);
+  console.log('[run/route] Creating signed URL for Supabase Storage:', storage_path);
 
   // Use server client with user's session
   const supabase = await createSupabaseServer();
-  const { data, error: downloadError } = await supabase.storage
+  const { data: signedData, error: signError } = await supabase.storage
     .from('sb-uploads')
-    .download(storage_path);
+    .createSignedUrl(storage_path, 7200); // 2-hour expiry — Python downloads directly
 
-  if (downloadError || !data) {
-    console.error('[run/route] Storage download error:', downloadError);
+  if (signError || !signedData?.signedUrl) {
+    console.error('[run/route] Failed to create signed URL:', signError);
     await updatePerformanceStatus(analysis_id, 'error', {
-      error: 'Failed to download video from storage',
+      error: 'Failed to create download URL for video',
     });
-    return NextResponse.json({ error: 'Failed to download video from storage' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to create download URL for video' }, { status: 500 });
   }
 
-  // Save to temporary local file for Python analysis
-  const buffer = Buffer.from(await data.arrayBuffer());
-  await fs.writeFile(videoFile, buffer);
-  console.log('[run/route] Video downloaded to:', videoFile, 'size:', buffer.length);
+  const signedUrl = signedData.signedUrl;
+  console.log('[run/route] Signed URL created — Python will stream file to:', videoFile);
 
   // Update status to processing in database
   const updateResult = await updatePerformanceStatus(analysis_id, 'processing', {
@@ -109,6 +107,7 @@ export async function POST(req: NextRequest) {
   const child = spawn('python3', [
     pythonScript,
     '--video-path', videoFile,
+    '--signed-url', signedUrl,
     '--output-path', tempResultPath,
     '--analysis-id', analysis_id,
   ], {
@@ -130,9 +129,19 @@ export async function POST(req: NextRequest) {
  * Reads result from temporary file and writes to database.
  */
 async function monitorAnalysis(analysisId: string, userId: string, tempResultPath: string) {
-  const MAX_WAIT_MS = 5 * 60 * 1000; // 5 minutes max
+  const MAX_WAIT_MS = parseInt(process.env.ANALYSIS_TIMEOUT_MS || '7200000', 10); // default 2 hours
   const POLL_INTERVAL_MS = 2000;
   const startTime = Date.now();
+
+  const getProgressStatus = async () => {
+    try {
+      const progressPath = path.join(path.dirname(tempResultPath), 'progress.json');
+      const raw = await fs.readFile(progressPath, 'utf-8');
+      return JSON.parse(raw) as { current_step: string; last_updated: string };
+    } catch {
+      return null;
+    }
+  };
 
   const check = async () => {
     try {
@@ -184,10 +193,21 @@ async function monitorAnalysis(analysisId: string, userId: string, tempResultPat
     }
 
     if (Date.now() - startTime > MAX_WAIT_MS) {
-      // Timeout
-      console.error('[monitorAnalysis] Analysis timed out:', analysisId);
+      // Before giving up, check if progress file shows recent activity
+      const progress = await getProgressStatus();
+      if (progress?.last_updated) {
+        const msSinceUpdate = Date.now() - new Date(progress.last_updated).getTime();
+        if (msSinceUpdate < 60000) {
+          // Updated within the last 60 seconds — still alive, keep polling
+          console.log(`[monitorAnalysis] Timeout extended — Python still active: ${progress.current_step}`);
+          setTimeout(check, POLL_INTERVAL_MS);
+          return;
+        }
+      }
+      const timeoutMin = Math.round(MAX_WAIT_MS / 1000 / 60);
+      console.error(`[monitorAnalysis] Analysis timed out after ${timeoutMin} minutes:`, analysisId);
       await updatePerformanceStatus(analysisId, 'error', {
-        error: 'Analysis timed out after 5 minutes',
+        error: `Analysis timed out after ${timeoutMin} minutes. Check server logs for Python process state.`,
       });
       return;
     }

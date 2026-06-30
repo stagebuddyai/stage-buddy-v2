@@ -553,7 +553,7 @@ def extract_audio_from_video(video_path: str, output_audio_path: str) -> bool:
             '-ac', '1',  # Mono
             '-y',  # Overwrite output
             output_audio_path
-        ], capture_output=True, check=True, timeout=300)
+        ], capture_output=True, check=True, timeout=1800)  # 30 min for large files
         return True
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError) as e:
         print(f"⚠️  Warning: Could not extract audio ({e})", file=sys.stderr)
@@ -918,12 +918,82 @@ def generate_spirit_chest_growth_plan(spirit_subscores: dict, chest_subscores: d
     }
 
 
+def download_file_from_url(signed_url: str, output_path: str, timeout: int = 900) -> None:
+    """
+    Stream a file from a Supabase signed URL directly to disk in 1 MB chunks.
+    Never loads the full file into memory.
+
+    Args:
+        signed_url: Supabase signed URL (expires in 2 hours)
+        output_path: Local path to save the file
+        timeout: Max seconds to wait for the download (default 15 min)
+
+    Raises:
+        RuntimeError on download failure or timeout
+    """
+    import requests
+
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    print(f"[Download] Streaming from Supabase → {output_path}", file=sys.stderr)
+
+    try:
+        response = requests.get(signed_url, timeout=timeout, stream=True)
+        response.raise_for_status()
+
+        total_bytes = 0
+        chunk_size = 1024 * 1024  # 1 MB
+        with open(output_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=chunk_size):
+                if chunk:
+                    f.write(chunk)
+                    total_bytes += len(chunk)
+                    if total_bytes % (50 * 1024 * 1024) == 0:  # log every 50 MB
+                        print(f"[Download] {total_bytes / 1024 / 1024:.0f} MB downloaded...", file=sys.stderr)
+
+        print(f"[Download] Complete — {total_bytes / 1024 / 1024:.1f} MB saved to {output_path}", file=sys.stderr)
+
+    except requests.exceptions.Timeout:
+        raise RuntimeError(f"Download timed out after {timeout}s — check Supabase network speed")
+    except requests.exceptions.RequestException as e:
+        raise RuntimeError(f"Download failed: {e}")
+
+
+def write_progress(output_path: str, current_step: str) -> None:
+    """
+    Write a heartbeat progress file so the Node monitor knows Python is still alive.
+    Written to the same directory as the output report.
+    """
+    from datetime import datetime, timezone
+    progress_path = os.path.join(os.path.dirname(output_path), 'progress.json')
+    try:
+        os.makedirs(os.path.dirname(progress_path), exist_ok=True)
+        with open(progress_path, 'w') as f:
+            json.dump({
+                'current_step': current_step,
+                'last_updated': datetime.now(timezone.utc).isoformat(),
+            }, f)
+        print(f"[Progress] {current_step}", file=sys.stderr)
+    except Exception as e:
+        print(f"[Progress] Warning: could not write progress file: {e}", file=sys.stderr)
+
+
 def main():
     parser = argparse.ArgumentParser(description='Stage Buddy V2 Analysis Runner')
-    parser.add_argument('--video-path', required=True, help='Path to video file')
+    parser.add_argument('--video-path', required=True, help='Local path where video will be saved / already exists')
+    parser.add_argument('--signed-url', required=False, help='Supabase signed URL to stream file from (skips local check)')
     parser.add_argument('--output-path', required=True, help='Path for output JSON report')
     parser.add_argument('--analysis-id', required=True, help='Unique analysis identifier')
     args = parser.parse_args()
+
+    write_progress(args.output_path, 'Starting analysis...')
+
+    # Download from Supabase if a signed URL was provided
+    if args.signed_url:
+        try:
+            download_file_from_url(args.signed_url, args.video_path, timeout=900)
+        except RuntimeError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
 
     if not os.path.exists(args.video_path):
         print(f"Error: Video file not found: {args.video_path}", file=sys.stderr)
@@ -933,6 +1003,8 @@ def main():
     file_size = os.path.getsize(args.video_path)
     process_time = min(8, max(3, file_size / (50 * 1024 * 1024)))
     time.sleep(process_time)
+
+    write_progress(args.output_path, 'Generating performance report...')
 
     try:
         report = generate_report(args.video_path, args.analysis_id)

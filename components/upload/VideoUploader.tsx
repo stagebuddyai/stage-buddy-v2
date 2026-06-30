@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
+import UploadProgress from './UploadProgress';
 
 const SUPPORTED_TYPES = [
   'video/mp4',
@@ -12,7 +13,7 @@ const SUPPORTED_TYPES = [
   'video/x-matroska',
 ];
 
-const MAX_SIZE = 500 * 1024 * 1024; // 500MB
+const MAX_SIZE = 750 * 1024 * 1024; // 750MB
 
 const MIME_TO_EXT: Record<string, string> = {
   'video/mp4': 'mp4',
@@ -30,13 +31,15 @@ export default function VideoUploader() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<string>('');
+  const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'submitted' | 'error'>('idle');
+  const [uploadPercent, setUploadPercent] = useState(0);
 
   const validateFile = useCallback((f: File): string | null => {
     if (!SUPPORTED_TYPES.includes(f.type)) {
       return `Unsupported file format. Please use MP4, WebM, MOV, AVI, or MKV.`;
     }
     if (f.size > MAX_SIZE) {
-      return `File is too large (${(f.size / (1024 * 1024)).toFixed(0)} MB). Maximum is 500 MB.`;
+      return `File is too large (${(f.size / (1024 * 1024)).toFixed(0)} MB). Maximum is 750 MB.`;
     }
     return null;
   }, []);
@@ -94,23 +97,58 @@ export default function VideoUploader() {
       const extension = MIME_TO_EXT[file.type] || 'mp4';
       const storagePath = `${user.id}/${analysisId}/video.${extension}`;
 
-      setProgress('Uploading video to storage...');
-      console.log('[handleUpload] Uploading to Supabase Storage:', storagePath);
+      setProgress('Preparing upload...');
+      console.log('[handleUpload] Creating signed upload URL for:', storagePath);
 
-      // Upload directly to Supabase Storage (bypasses nginx proxy)
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      // Get a signed upload URL so we can track byte-level progress via XHR
+      const { data: signedData, error: signedError } = await supabase.storage
         .from('sb-uploads')
-        .upload(storagePath, file, {
-          cacheControl: '3600',
-          upsert: false,
-        });
+        .createSignedUploadUrl(storagePath);
 
-      if (uploadError) {
-        console.error('[handleUpload] Storage upload error:', uploadError);
-        throw new Error(uploadError.message || 'Failed to upload video');
+      if (signedError || !signedData?.signedUrl) {
+        console.error('[handleUpload] Failed to get signed upload URL:', signedError);
+        throw new Error('Failed to prepare upload. Please try again.');
       }
-      console.log('[handleUpload] Upload successful:', uploadData);
 
+      // Stream the file to Supabase using XHR — gives real byte-level progress events
+      setUploadStatus('uploading');
+      setUploadPercent(0);
+      setProgress('Uploading video...');
+      console.log('[handleUpload] Starting XHR upload to Supabase signed URL');
+
+      await new Promise<void>((resolve, reject) => {
+        const formData = new FormData();
+        formData.append('cacheControl', '3600');
+        formData.append('', file); // empty key matches Supabase storage-js SDK convention
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('PUT', signedData.signedUrl);
+        xhr.setRequestHeader('x-upsert', 'false');
+
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            setUploadPercent(Math.round((e.loaded / e.total) * 100));
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            setUploadPercent(100);
+            resolve();
+          } else {
+            console.error('[handleUpload] XHR upload failed, status:', xhr.status, xhr.responseText);
+            reject(new Error(`Upload failed (HTTP ${xhr.status}). Please try again.`));
+          }
+        };
+
+        xhr.onerror = () => reject(new Error('Network error during upload. Check your connection.'));
+        xhr.ontimeout = () => reject(new Error('Upload timed out. Try a smaller file or faster connection.'));
+
+        xhr.send(formData);
+      });
+
+      console.log('[handleUpload] Upload complete');
+      setUploadStatus('submitted');
       setProgress('Starting analysis...');
 
       // Call API to register the upload and start analysis
@@ -138,6 +176,7 @@ export default function VideoUploader() {
       setError(err instanceof Error ? err.message : 'An unexpected error occurred');
       setUploading(false);
       setProgress('');
+      setUploadStatus('error');
     }
   };
 
@@ -233,6 +272,12 @@ export default function VideoUploader() {
           {uploading ? progress || 'Processing...' : 'Analyze Performance'}
         </button>
       )}
+
+      <UploadProgress
+        status={uploadStatus}
+        percent={uploadPercent}
+        errorMessage={error ?? undefined}
+      />
     </div>
   );
 }
